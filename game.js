@@ -118,8 +118,8 @@ const walls = [
     { x1: WALL_LEFT, y1: WALL_TOP, x2: CORNER_CX, y2: WALL_TOP },
     // Arc arrondi en haut à droite
     ...cornerArc,
-    // Mur droit du plateau
-    { x1: LANE_INNER_X, y1: WALL_TOP, x2: LANE_INNER_X, y2: 430 },
+    // Mur droit du plateau (commence sous l'arc pour laisser la bille entrer)
+    { x1: LANE_INNER_X, y1: CORNER_CY, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
     // Couloir lanceur : mur extérieur droit
