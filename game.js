@@ -227,10 +227,21 @@ function updateFlippers() {
         flippers[1].targetAngle = Math.PI - FLIPPER_REST_ANGLE;
     }
 
+    // Sous-étapes de rotation pour ne pas sauter par-dessus la bille
+    const FLIP_SUBSTEPS = 4;
     for (const flipper of flippers) {
         const prev = flipper.angle;
-        const diff = flipper.targetAngle - flipper.angle;
-        flipper.angle += diff * FLIPPER_SPEED * 5;
+        const totalDiff = flipper.targetAngle - flipper.angle;
+        const totalDelta = totalDiff * FLIPPER_SPEED * 5;
+
+        for (let s = 0; s < FLIP_SUBSTEPS; s++) {
+            flipper.angle += totalDelta / FLIP_SUBSTEPS;
+            flipper.angularVelocity = totalDelta;
+            // Tester la collision à chaque sous-étape de rotation
+            if (ball.launched) {
+                collideFlippers();
+            }
+        }
         flipper.angularVelocity = flipper.angle - prev;
     }
 }
@@ -256,30 +267,51 @@ function collideFlippers() {
             const nx = dx / dist;
             const ny = dy / dist;
 
-            // Repousser la bille hors du flipper
-            ball.x = closest.x + nx * (minDist + 2);
-            ball.y = closest.y + ny * (minDist + 2);
+            // Repousser la bille fermement hors du flipper
+            ball.x = closest.x + nx * (minDist + 3);
+            ball.y = closest.y + ny * (minDist + 3);
 
             const angVel = flipper.angularVelocity || 0;
             const contactDist = Math.sqrt((closest.x - flipper.x) ** 2 + (closest.y - flipper.y) ** 2);
-            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.5, 12);
+            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.8, 14);
 
             const dot = ball.vx * nx + ball.vy * ny;
             ball.vx = (ball.vx - 2 * dot * nx) * BOUNCE;
             ball.vy = (ball.vy - 2 * dot * ny) * BOUNCE;
 
-            // Impulsion du flipper : envoie la bille vers le haut
-            if (Math.abs(angVel) > 0.01) {
-                ball.vy -= hitStrength;
+            // Impulsion du flipper : toujours propulser vers le haut
+            const isFlipping = Math.abs(angVel) > 0.005;
+            if (isFlipping) {
+                // Impulsion forte quand le flipper est actif
+                const impulse = Math.max(hitStrength, 5);
+                ball.vy -= impulse;
                 const dir = flipper.side === 'left' ? 1 : -1;
-                ball.vx += dir * hitStrength * 0.4;
+                ball.vx += dir * impulse * 0.45;
+            } else {
+                // Même au repos, un petit rebond vers le haut pour ne jamais traverser
+                if (ball.vy > 0) {
+                    ball.vy = -Math.abs(ball.vy) * BOUNCE;
+                }
             }
 
-            // Clamper la vitesse immédiatement après le coup
+            // Clamper la vitesse
             const spd = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
             if (spd > MAX_SPEED) {
                 ball.vx = (ball.vx / spd) * MAX_SPEED;
                 ball.vy = (ball.vy / spd) * MAX_SPEED;
+            }
+        }
+        // Sécurité : si la bille est en dessous du flipper et dans sa zone X,
+        // la repousser au-dessus (anti-tunneling de dernier recours)
+        else if (ball.y > flipper.y + FLIPPER_WIDTH / 2 && ball.y < flipper.y + FLIPPER_WIDTH * 2) {
+            const flipEndX = end.x;
+            const minX = Math.min(flipper.x, flipEndX) - ball.radius;
+            const maxX = Math.max(flipper.x, flipEndX) + ball.radius;
+            if (ball.x > minX && ball.x < maxX) {
+                ball.y = flipper.y - minDist - 2;
+                if (ball.vy > 0) {
+                    ball.vy = -Math.abs(ball.vy) * BOUNCE;
+                }
             }
         }
     }
