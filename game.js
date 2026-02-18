@@ -196,12 +196,17 @@ document.addEventListener('keyup', (e) => {
 });
 
 // --- Bumpers ---
+// Disposition en triangle inversé + bumper MEGA spécial au centre
 const bumpers = [
-    { x: 130, y: 210, radius: 22, points: 100, glow: 0 },
-    { x: 240, y: 195, radius: 22, points: 100, glow: 0 },
-    { x: 180, y: 300, radius: 28, points: 150, glow: 0 },
-    { x: 90, y: 360, radius: 18, points: 100, glow: 0 },
-    { x: 270, y: 350, radius: 18, points: 100, glow: 0 },
+    // Rangée du haut (3 bumpers)
+    { x: 100, y: 190, radius: 20, points: 100, glow: 0, special: false },
+    { x: 185, y: 170, radius: 20, points: 100, glow: 0, special: false },
+    { x: 270, y: 190, radius: 20, points: 100, glow: 0, special: false },
+    // Rangée du milieu (2 bumpers)
+    { x: 130, y: 290, radius: 20, points: 100, glow: 0, special: false },
+    { x: 240, y: 290, radius: 20, points: 100, glow: 0, special: false },
+    // ⭐ MEGA bumper central — plus gros, x3 points, look doré
+    { x: 185, y: 380, radius: 32, points: 500, glow: 0, special: true },
 ];
 
 // --- Collision bille / segment ---
@@ -330,13 +335,13 @@ function collideBumpers() {
             ball.y = bumper.y + ny * (minDist + 1);
 
             const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-            const reboundSpeed = Math.max(speed, 5) * 1.2;
+            const reboundSpeed = Math.max(speed, 5) * (bumper.special ? 1.5 : 1.2);
             ball.vx = nx * reboundSpeed;
             ball.vy = ny * reboundSpeed;
 
             score += bumper.points;
             bumper.glow = 1.0;
-            spawnParticles(bumper.x, bumper.y, 10);
+            spawnParticles(bumper.x, bumper.y, bumper.special ? 20 : 10);
         }
         if (bumper.glow > 0) bumper.glow -= 0.025;
     }
@@ -704,6 +709,7 @@ function drawFlippers() {
 function drawBumpers() {
     for (const bumper of bumpers) {
         const g = bumper.glow;
+        const isSpecial = bumper.special;
         ctx.save();
 
         // Ombre
@@ -713,27 +719,36 @@ function drawBumpers() {
         ctx.fill();
 
         if (g > 0.1) {
-            ctx.shadowColor = '#ffff00';
-            ctx.shadowBlur = 40 * g;
+            ctx.shadowColor = isSpecial ? '#ffaa00' : '#ffff00';
+            ctx.shadowBlur = (isSpecial ? 60 : 40) * g;
         }
 
-        // Corps
+        // Corps — doré pour le MEGA, rose/violet pour les normaux
         const grad = ctx.createRadialGradient(
             bumper.x - bumper.radius * 0.3, bumper.y - bumper.radius * 0.3, 2,
             bumper.x, bumper.y, bumper.radius
         );
-        const bright = Math.floor(200 + 55 * g);
-        grad.addColorStop(0, `rgb(${bright}, ${Math.floor(80 + 175 * g)}, ${Math.floor(180 + 75 * g)})`);
-        grad.addColorStop(0.7, '#cc3388');
-        grad.addColorStop(1, '#881155');
+        if (isSpecial) {
+            const bright = Math.floor(220 + 35 * g);
+            grad.addColorStop(0, `rgb(${bright}, ${Math.floor(200 + 55 * g)}, ${Math.floor(50 + 80 * g)})`);
+            grad.addColorStop(0.6, '#cc8800');
+            grad.addColorStop(1, '#885500');
+        } else {
+            const bright = Math.floor(200 + 55 * g);
+            grad.addColorStop(0, `rgb(${bright}, ${Math.floor(80 + 175 * g)}, ${Math.floor(180 + 75 * g)})`);
+            grad.addColorStop(0.7, '#cc3388');
+            grad.addColorStop(1, '#881155');
+        }
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(bumper.x, bumper.y, bumper.radius, 0, Math.PI * 2);
         ctx.fill();
 
         // Anneau extérieur
-        ctx.strokeStyle = g > 0.3 ? `rgba(255,255,0,${0.5 + g * 0.5})` : '#ff6ec7';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = isSpecial
+            ? (g > 0.3 ? `rgba(255,215,0,${0.5 + g * 0.5})` : '#ffaa44')
+            : (g > 0.3 ? `rgba(255,255,0,${0.5 + g * 0.5})` : '#ff6ec7');
+        ctx.lineWidth = isSpecial ? 4 : 3;
         ctx.stroke();
         ctx.shadowBlur = 0;
 
@@ -744,12 +759,27 @@ function drawBumpers() {
         ctx.arc(bumper.x, bumper.y, bumper.radius * 0.65, 0, Math.PI * 2);
         ctx.stroke();
 
+        // Étoiles décoratives autour du MEGA bumper
+        if (isSpecial) {
+            const time = Date.now() / 600;
+            for (let i = 0; i < 6; i++) {
+                const a = time + (i * Math.PI * 2 / 6);
+                const sx = bumper.x + Math.cos(a) * (bumper.radius + 8);
+                const sy = bumper.y + Math.sin(a) * (bumper.radius + 8);
+                ctx.fillStyle = `rgba(255,215,0,${0.4 + 0.3 * Math.sin(time + i)})`;
+                ctx.font = '8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('✦', sx, sy);
+            }
+        }
+
         // Points
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${bumper.radius > 20 ? 13 : 10}px monospace`;
+        ctx.fillStyle = isSpecial ? '#fff' : '#fff';
+        ctx.font = `bold ${bumper.radius > 24 ? 14 : (bumper.radius > 20 ? 13 : 10)}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(bumper.points, bumper.x, bumper.y);
+        ctx.fillText(isSpecial ? '★' + bumper.points : bumper.points, bumper.x, bumper.y);
 
         ctx.restore();
     }
