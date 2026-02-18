@@ -76,8 +76,9 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
-// Le couloir lanceur est ouvert en haut : le mur intérieur courbe doucement
-// vers la gauche pour guider la bille dans le plateau.
+// Le couloir lanceur est à droite. En haut, le mur extérieur du couloir
+// fait un demi-cercle (U-turn) qui ramène la bille vers la gauche,
+// où elle retombe dans le plateau.
 
 // Génère des segments d'arc de cercle
 function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
@@ -95,20 +96,22 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     return segs;
 }
 
-// Petite courbe en haut du mur intérieur du couloir :
-// Quart de cercle qui part du haut du mur intérieur (vertical, à droite)
-// et courbe vers la gauche (horizontal) pour guider la bille dans le plateau.
-// Centre = (WALL_RIGHT, 75), rayon = LANE_LEFT - WALL_RIGHT = 10
-// Arc de 0 (droite) vers -π/2 (haut) — on tourne dans le sens anti-horaire
-const CURVE_RADIUS = 40;
-const CURVE_CENTER_X = LANE_LEFT - CURVE_RADIUS;
-const CURVE_CENTER_Y = 75;
-const curveTopInner = makeArc(
-    CURVE_CENTER_X, CURVE_CENTER_Y,
-    CURVE_RADIUS,
-    0,              // départ : vers la droite (rejoint le mur intérieur du couloir)
-    -Math.PI / 2,   // arrivée : vers le haut (puis la bille va vers la gauche)
-    10
+// Demi-cercle en haut du couloir : la bille monte dans le couloir droit,
+// suit le U-turn, et ressort vers la gauche dans le plateau.
+// Le centre du demi-cercle est entre les deux murs du couloir.
+// Le mur extérieur (droite) fait le virage avec un rayon = moitié largeur couloir.
+const LANE_MID_X = (LANE_LEFT + LANE_RIGHT) / 2;  // 355
+const LANE_HALF = (LANE_RIGHT - LANE_LEFT) / 2;    // 15
+const UTURN_Y = 55;  // hauteur du U-turn
+
+// Arc extérieur : demi-cercle du mur droit qui tourne
+// Part du bas-droite (π/2 = vers le bas) → monte → revient à gauche (-π/2 = vers le haut-gauche)
+const uturnOuter = makeArc(
+    LANE_MID_X, UTURN_Y,
+    LANE_HALF,
+    Math.PI / 2,    // départ : côté droit du couloir, allant vers le bas
+    -Math.PI / 2,   // arrivée : côté gauche du couloir, allant vers le haut
+    12
 );
 
 const walls = [
@@ -116,18 +119,18 @@ const walls = [
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur droit vertical (du bas de la courbe jusqu'au diagonal)
+    // Mur droit vertical (= mur intérieur du couloir, de la sortie du U-turn vers le bas)
+    { x1: LANE_LEFT, y1: UTURN_Y, x2: LANE_LEFT, y2: H },
+    // Mur droit du plateau (en dessous de l'entrée du couloir)
     { x1: WALL_RIGHT, y1: WALL_TOP, x2: WALL_RIGHT, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: WALL_RIGHT, y1: 430, x2: 265, y2: 620 },
-    // Mur du haut (simple, horizontal)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: CURVE_CENTER_X, y2: CURVE_CENTER_Y - CURVE_RADIUS },
-    // Courbe en haut du couloir (guide la bille du couloir vers le plateau)
-    ...curveTopInner,
-    // Couloir lanceur : mur intérieur vertical (du bas de la courbe vers le bas)
-    { x1: LANE_LEFT, y1: CURVE_CENTER_Y, x2: LANE_LEFT, y2: H },
-    // Couloir lanceur : mur extérieur droit (tout droit, jamais fermé en haut)
-    { x1: LANE_RIGHT, y1: 30, x2: LANE_RIGHT, y2: H },
+    // Mur du haut horizontal (du mur gauche jusqu'à la sortie du U-turn)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_LEFT, y2: UTURN_Y },
+    // Demi-cercle du U-turn en haut du couloir
+    ...uturnOuter,
+    // Couloir lanceur : mur extérieur droit (du bas du U-turn vers le bas)
+    { x1: LANE_RIGHT, y1: UTURN_Y, x2: LANE_RIGHT, y2: H },
 ];
 
 // --- Flippers ---
