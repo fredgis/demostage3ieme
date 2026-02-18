@@ -1,0 +1,35 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+#game-container {
+    text-align: center;
+}
+
+h1 {
+    color: #ff6ec7;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px #ff6ec7, 0 0 40px #ff6ec7;
+    letter-spacing: 8px;
+}
+
+canvas {
+    border: 3px solid #ff6ec7;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(255, 110, 199, 0.3);
+    display: block;
+    margin: 0 auto;
+}
