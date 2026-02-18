@@ -4,6 +4,8 @@ Un jeu de flipper ambiance Terminator jouable dans le navigateur, codé en HTML,
 
 ![Terminator Pinball](screenshot.png)
 
+![Plateau de jeu](screenshot_gameplay.png)
+
 ## 🎮 Comment jouer
 
 - **ESPACE** : maintenir pour charger le lanceur, relâcher pour lancer la bille
