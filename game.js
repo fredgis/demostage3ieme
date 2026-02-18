@@ -43,7 +43,7 @@ for (let i = 0; i < 80; i++) {
 
 // --- La bille ---
 const ball = {
-    x: 355, y: 600,
+    x: 360, y: 600,
     vx: 0, vy: 0,
     radius: 8,
     launched: false
@@ -51,14 +51,14 @@ const ball = {
 
 // --- Lanceur ---
 const launcher = {
-    x: 355, y: 630,
+    x: 360, y: 630,
     power: 0,
     maxPower: 16,
     charging: false
 };
 
 function resetBall() {
-    ball.x = 355;
+    ball.x = 360;
     ball.y = 600;
     ball.vx = 0;
     ball.vy = 0;
@@ -76,11 +76,22 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
-// Le couloir lanceur est à droite. En haut, le mur extérieur du couloir
-// fait un demi-cercle (U-turn) qui ramène la bille vers la gauche,
-// où elle retombe dans le plateau.
+// Architecture simple :
+//   - Mur gauche vertical puis diagonal vers le flipper gauche
+//   - Mur droit du plateau s'arrête en haut (y=150), laissant une ouverture
+//   - Le couloir lanceur est entre x=345 et x=375
+//   - En haut du couloir, le mur extérieur (droit) fait un arc
+//     qui ramène la bille vers la gauche, au-dessus du mur droit du plateau
+//   - La bille tombe alors dans le plateau par l'ouverture en haut à droite
+//
+//   Schéma :
+//        mur gauche    mur du haut     ouverture  arc  mur ext.
+//        │             ────────────    ↓↓↓↓↓     ╭──╮  │
+//        │             plateau                    │  │  │
+//        │             mur droit ──────────       │  │  │
+//        │                                        │  │  │ couloir
+//        │                                        │  │  │
 
-// Génère des segments d'arc de cercle
 function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     const segs = [];
     for (let i = 0; i < nSegs; i++) {
@@ -96,41 +107,50 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     return segs;
 }
 
-// Demi-cercle en haut du couloir : la bille monte dans le couloir droit,
-// suit le U-turn, et ressort vers la gauche dans le plateau.
-// Le centre du demi-cercle est entre les deux murs du couloir.
-// Le mur extérieur (droite) fait le virage avec un rayon = moitié largeur couloir.
-const LANE_MID_X = (LANE_LEFT + LANE_RIGHT) / 2;  // 355
-const LANE_HALF = (LANE_RIGHT - LANE_LEFT) / 2;    // 15
-const UTURN_Y = 55;  // hauteur du U-turn
+// Couloir lanceur : entre x=345 et x=375
+const LANE_X_LEFT = 345;
+const LANE_X_RIGHT = 375;
+const LANE_WIDTH = LANE_X_RIGHT - LANE_X_LEFT; // 30
 
-// Arc extérieur : demi-cercle du mur droit qui tourne
-// Part du bas-droite (π/2 = vers le bas) → monte → revient à gauche (-π/2 = vers le haut-gauche)
-const uturnOuter = makeArc(
-    LANE_MID_X, UTURN_Y,
-    LANE_HALF,
-    Math.PI / 2,    // départ : côté droit du couloir, allant vers le bas
-    -Math.PI / 2,   // arrivée : côté gauche du couloir, allant vers le haut
-    12
+// Arc en haut du couloir : demi-cercle de rayon 15
+// Centre en haut du couloir, la bille fait un U-turn
+const ARC_CENTER_X = (LANE_X_LEFT + LANE_X_RIGHT) / 2; // 360
+const ARC_CENTER_Y = 50;
+const ARC_RADIUS = LANE_WIDTH / 2; // 15
+
+const uturnArc = makeArc(
+    ARC_CENTER_X, ARC_CENTER_Y,
+    ARC_RADIUS,
+    0,          // départ : côté droit (x=375)
+    -Math.PI,   // arrivée : côté gauche (x=345) — demi-cercle par le haut
+    10
 );
+
+// Le mur droit du plateau s'arrête à y=150, laissant un passage
+// entre y=80 et y=150 où la bille entre dans le plateau
+const OPENING_TOP = WALL_TOP;    // 80
+const OPENING_BOTTOM = 150;
 
 const walls = [
     // Mur gauche vertical
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur droit vertical (= mur intérieur du couloir, de la sortie du U-turn vers le bas)
-    { x1: LANE_LEFT, y1: UTURN_Y, x2: LANE_LEFT, y2: H },
-    // Mur droit du plateau (en dessous de l'entrée du couloir)
-    { x1: WALL_RIGHT, y1: WALL_TOP, x2: WALL_RIGHT, y2: 430 },
+    // Mur du haut horizontal (du gauche jusqu'au couloir)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_X_LEFT, y2: WALL_TOP },
+    // Mur droit du plateau (commence à y=150, PAS en haut → ouverture !)
+    { x1: LANE_X_LEFT, y1: OPENING_BOTTOM, x2: LANE_X_LEFT, y2: 430 },
     // Mur droit diagonal → vers flipper droit
-    { x1: WALL_RIGHT, y1: 430, x2: 265, y2: 620 },
-    // Mur du haut horizontal (du mur gauche jusqu'à la sortie du U-turn)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_LEFT, y2: UTURN_Y },
-    // Demi-cercle du U-turn en haut du couloir
-    ...uturnOuter,
-    // Couloir lanceur : mur extérieur droit (du bas du U-turn vers le bas)
-    { x1: LANE_RIGHT, y1: UTURN_Y, x2: LANE_RIGHT, y2: H },
+    { x1: LANE_X_LEFT, y1: 430, x2: 265, y2: 620 },
+    // Arc U-turn en haut du couloir
+    ...uturnArc,
+    // Couloir lanceur : mur intérieur (gauche du couloir) — du bas de l'arc vers le bas
+    // Ce mur va de y=50 (sortie de l'arc) à y=80 (haut du plateau) — la bille glisse dessus
+    // puis l'ouverture (y=80 à y=150) — pas de mur !
+    // puis le mur droit du plateau reprend à y=150
+    { x1: LANE_X_LEFT, y1: ARC_CENTER_Y, x2: LANE_X_LEFT, y2: OPENING_TOP },
+    // Couloir lanceur : mur extérieur (droit du couloir) — de l'arc vers le bas
+    { x1: LANE_X_RIGHT, y1: ARC_CENTER_Y, x2: LANE_X_RIGHT, y2: H },
 ];
 
 // --- Flippers ---
@@ -528,8 +548,8 @@ function generateBackgroundImage() {
     bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
     bg.beginPath();
     bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
-    bg.lineTo(WALL_RIGHT - 5, WALL_TOP + 5);
-    bg.lineTo(WALL_RIGHT - 5, 430);
+    bg.lineTo(LANE_X_LEFT - 5, WALL_TOP + 5);
+    bg.lineTo(LANE_X_LEFT - 5, 430);
     bg.lineTo(265, 620);
     bg.lineTo(110, 620);
     bg.lineTo(WALL_LEFT + 5, 430);
@@ -792,7 +812,7 @@ function drawLauncher() {
 
 function drawScore() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(WALL_LEFT, 42, WALL_RIGHT - WALL_LEFT, 24);
+    ctx.fillRect(WALL_LEFT, 42, LANE_X_LEFT - WALL_LEFT, 24);
 
     ctx.fillStyle = '#00ffdd';
     ctx.font = 'bold 16px monospace';
@@ -801,7 +821,7 @@ function drawScore() {
 
     // Vies
     for (let i = 0; i < lives; i++) {
-        const cx = WALL_RIGHT - 15 - i * 20;
+        const cx = LANE_X_LEFT - 15 - i * 20;
         const cy = 56;
         const g = ctx.createRadialGradient(cx - 1, cy - 1, 1, cx, cy, 6);
         g.addColorStop(0, '#fff');
