@@ -76,9 +76,10 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
-// On génère un arc arrondi en haut et une courbe lisse pour le virage du couloir
+// Le couloir lanceur est ouvert en haut : le mur intérieur courbe doucement
+// vers la gauche pour guider la bille dans le plateau.
 
-// Génère des segments d'arc de cercle (cx, cy = centre, r = rayon, startAngle, endAngle en radians, nSegs segments)
+// Génère des segments d'arc de cercle
 function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     const segs = [];
     for (let i = 0; i < nSegs; i++) {
@@ -94,44 +95,39 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     return segs;
 }
 
-// Arc arrondi en haut du plateau : demi-cercle de gauche à droite
-const arcTop = makeArc(
-    (WALL_LEFT + WALL_RIGHT) / 2,  // centre X
-    WALL_TOP + 5,                   // centre Y (juste sous le haut)
-    (WALL_RIGHT - WALL_LEFT) / 2,  // rayon
-    Math.PI,                        // de gauche (π)
-    0,                              // à droite (0)
-    12                              // 12 segments pour un arc bien lisse
-);
-
-// Courbe du virage en haut du couloir lanceur : quart de cercle
-const curveTop = makeArc(
-    WALL_RIGHT, WALL_TOP + 5,       // centre = coin haut droit du plateau
-    LANE_LEFT - WALL_RIGHT,          // rayon = largeur entre plateau et couloir
-    0,                               // de droite (0)
-    Math.PI / 2,                     // à bas (π/2)
-    8                                // 8 segments bien lisses
+// Petite courbe en haut du mur intérieur du couloir :
+// Quart de cercle qui part du haut du mur intérieur (vertical, à droite)
+// et courbe vers la gauche (horizontal) pour guider la bille dans le plateau.
+// Centre = (WALL_RIGHT, 75), rayon = LANE_LEFT - WALL_RIGHT = 10
+// Arc de 0 (droite) vers -π/2 (haut) — on tourne dans le sens anti-horaire
+const CURVE_RADIUS = 40;
+const CURVE_CENTER_X = LANE_LEFT - CURVE_RADIUS;
+const CURVE_CENTER_Y = 75;
+const curveTopInner = makeArc(
+    CURVE_CENTER_X, CURVE_CENTER_Y,
+    CURVE_RADIUS,
+    0,              // départ : vers la droite (rejoint le mur intérieur du couloir)
+    -Math.PI / 2,   // arrivée : vers le haut (puis la bille va vers la gauche)
+    10
 );
 
 const walls = [
     // Mur gauche vertical
-    { x1: WALL_LEFT, y1: WALL_TOP + 5, x2: WALL_LEFT, y2: 430 },
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur droit vertical (commence après la courbe)
-    { x1: WALL_RIGHT, y1: WALL_TOP + 5 + (LANE_LEFT - WALL_RIGHT), x2: WALL_RIGHT, y2: 430 },
+    // Mur droit vertical (du bas de la courbe jusqu'au diagonal)
+    { x1: WALL_RIGHT, y1: WALL_TOP, x2: WALL_RIGHT, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: WALL_RIGHT, y1: 430, x2: 265, y2: 620 },
-    // Arc arrondi en haut
-    ...arcTop,
-    // Courbe du couloir lanceur
-    ...curveTop,
-    // Couloir lanceur : mur intérieur vertical (commence après la courbe)
-    { x1: LANE_LEFT, y1: WALL_TOP + 5 + (LANE_LEFT - WALL_RIGHT), x2: LANE_LEFT, y2: H },
-    // Couloir lanceur : mur extérieur droit
-    { x1: LANE_RIGHT, y1: WALL_TOP + 5, x2: LANE_RIGHT, y2: H },
-    // Raccord haut : de l'arc au couloir extérieur
-    { x1: WALL_RIGHT + (LANE_LEFT - WALL_RIGHT), y1: WALL_TOP + 5, x2: LANE_RIGHT, y2: WALL_TOP + 5 },
+    // Mur du haut (simple, horizontal)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: CURVE_CENTER_X, y2: CURVE_CENTER_Y - CURVE_RADIUS },
+    // Courbe en haut du couloir (guide la bille du couloir vers le plateau)
+    ...curveTopInner,
+    // Couloir lanceur : mur intérieur vertical (du bas de la courbe vers le bas)
+    { x1: LANE_LEFT, y1: CURVE_CENTER_Y, x2: LANE_LEFT, y2: H },
+    // Couloir lanceur : mur extérieur droit (tout droit, jamais fermé en haut)
+    { x1: LANE_RIGHT, y1: 30, x2: LANE_RIGHT, y2: H },
 ];
 
 // --- Flippers ---
