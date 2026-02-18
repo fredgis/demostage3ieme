@@ -1,5 +1,5 @@
 // ============================================
-// 🎰 FLIPPER WEB — Version corrigée v2
+// 🤖 FLIPPER WEB — TERMINATOR EDITION
 // ============================================
 
 const canvas = document.getElementById('pinball');
@@ -26,7 +26,7 @@ let highScore = parseInt(localStorage.getItem('flipperHighScore') || '0');
 // --- Particules ---
 const particles = [];
 
-// --- Étoiles de fond (générées une seule fois) ---
+// --- Étincelles / débris métalliques de fond ---
 const stars = [];
 for (let i = 0; i < 80; i++) {
     stars.push({
@@ -73,59 +73,61 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
-// La bille monte dans le couloir droit, tape l'arc arrondi en haut,
-// redescend et glisse sur la rampe diagonale vers le plateau.
-// Le couloir droit a un plafond incliné qui redirige la bille vers le plateau.
-// Une ouverture entre le plafond et le mur droit permet à la bille de passer.
-
 const LANE_INNER_X = 390;
 const LANE_OUTER_X = 425;
-const RAMP_BOTTOM_Y = 240;  // Le mur droit du plateau commence ici (sous l'ouverture)
+const RAMP_BOTTOM_Y = 240;
+
+// Flipper positions — écartées pour laisser passer la bille
+const FLIPPER_LEFT_X = 120;
+const FLIPPER_RIGHT_X = 305;
+const FLIPPER_Y = 725;
 
 const walls = [
     // Mur gauche vertical
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 510 },
     // Mur gauche diagonal → vers flipper gauche
-    { x1: WALL_LEFT, y1: 510, x2: 125, y2: 720 },
+    { x1: WALL_LEFT, y1: 510, x2: FLIPPER_LEFT_X - 10, y2: 720 },
     // Mur du haut (section plateau, horizontal)
     { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_INNER_X, y2: WALL_TOP },
-    // Plafond incliné du couloir (redirige la bille vers la gauche / le plateau)
+    // Plafond incliné du couloir
     { x1: LANE_INNER_X, y1: WALL_TOP, x2: LANE_OUTER_X, y2: WALL_TOP + 25 },
-    // Mur droit du plateau (commence sous l'ouverture, laissant un passage)
+    // Mur droit du plateau (commence sous l'ouverture)
     { x1: LANE_INNER_X, y1: RAMP_BOTTOM_Y, x2: LANE_INNER_X, y2: 510 },
     // Mur droit diagonal → vers flipper droit
-    { x1: LANE_INNER_X, y1: 510, x2: 290, y2: 720 },
+    { x1: LANE_INNER_X, y1: 510, x2: FLIPPER_RIGHT_X + 10, y2: 720 },
     // Couloir lanceur : mur extérieur droit
     { x1: LANE_OUTER_X, y1: WALL_TOP + 25, x2: LANE_OUTER_X, y2: H },
     // Couloir lanceur : mur intérieur (sous le plateau)
     { x1: LANE_INNER_X, y1: 510, x2: LANE_INNER_X, y2: H },
+    // Mur bas-gauche : empêche la bille de sortir par le côté gauche
+    { x1: FLIPPER_LEFT_X - 10, y1: 720, x2: FLIPPER_LEFT_X - 10, y2: H },
+    // Mur bas-droit : empêche la bille de sortir par le côté droit
+    { x1: FLIPPER_RIGHT_X + 10, y1: 720, x2: FLIPPER_RIGHT_X + 10, y2: H },
 ];
 
 // --- Flippers ---
-const FLIPPER_LENGTH = 65;
+const FLIPPER_LENGTH = 70;
 const FLIPPER_WIDTH = 14;
 const FLIPPER_SPEED = 0.18;
-// Au repos les flippers pointent vers le bas (position basse)
-// Quand activés, ils montent (angle négatif)
-const FLIPPER_REST_ANGLE = 0.45;   // repos = pointe vers le bas
-const FLIPPER_UP_ANGLE = -0.55;    // activé = pointe vers le haut
+const FLIPPER_REST_ANGLE = 0.45;
+const FLIPPER_UP_ANGLE = -0.55;
 
 const flippers = [
     {
-        x: 135, y: 725,
+        x: FLIPPER_LEFT_X, y: FLIPPER_Y,
         angle: FLIPPER_REST_ANGLE,
         targetAngle: FLIPPER_REST_ANGLE,
         angularVelocity: 0,
         side: 'left',
-        direction: 1       // s'étend vers la droite
+        direction: 1
     },
     {
-        x: 280, y: 725,
-        angle: Math.PI - FLIPPER_REST_ANGLE,  // miroir : repos vers le bas côté gauche
+        x: FLIPPER_RIGHT_X, y: FLIPPER_Y,
+        angle: Math.PI - FLIPPER_REST_ANGLE,
         targetAngle: Math.PI - FLIPPER_REST_ANGLE,
         angularVelocity: 0,
         side: 'right',
-        direction: 1       // on utilise direction=1 et on gère le miroir via l'angle
+        direction: 1
     }
 ];
 
@@ -327,7 +329,7 @@ function spawnParticles(x, y, count) {
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             life: 1.0,
-            color: ['#ffff00', '#ff6ec7', '#00ffff', '#ff4444', '#44ff44'][Math.floor(Math.random() * 5)],
+            color: ['#ff0000', '#ff3300', '#ff6600', '#cc0000', '#ffaa00'][Math.floor(Math.random() * 5)],
             size: 2 + Math.random() * 4
         });
     }
@@ -420,87 +422,83 @@ function generateBackgroundImage() {
     bgCanvas.height = H;
     const bg = bgCanvas.getContext('2d');
 
-    // Fond principal : dégradé profond
+    // Fond Terminator : noir industriel avec dégradé rouge sombre
     const mainGrad = bg.createLinearGradient(0, 0, 0, H);
-    mainGrad.addColorStop(0, '#0c0028');
-    mainGrad.addColorStop(0.3, '#140038');
-    mainGrad.addColorStop(0.7, '#0a0020');
-    mainGrad.addColorStop(1, '#050010');
+    mainGrad.addColorStop(0, '#0a0000');
+    mainGrad.addColorStop(0.3, '#1a0005');
+    mainGrad.addColorStop(0.7, '#0d0000');
+    mainGrad.addColorStop(1, '#050000');
     bg.fillStyle = mainGrad;
     bg.fillRect(0, 0, W, H);
 
-    // Étoiles fixes
+    // Débris / étincelles métalliques
     for (let i = 0; i < 120; i++) {
         const sx = Math.random() * W;
         const sy = Math.random() * H;
         const sr = Math.random() * 1.5 + 0.3;
-        bg.globalAlpha = Math.random() * 0.6 + 0.1;
-        bg.fillStyle = ['#ffffff', '#aaccff', '#ffccdd'][Math.floor(Math.random() * 3)];
+        bg.globalAlpha = Math.random() * 0.4 + 0.05;
+        bg.fillStyle = ['#ff3300', '#ff6600', '#cc4400'][Math.floor(Math.random() * 3)];
         bg.beginPath();
         bg.arc(sx, sy, sr, 0, Math.PI * 2);
         bg.fill();
     }
     bg.globalAlpha = 1;
 
-    // Grande nébuleuse rose-violet au centre
-    bg.globalAlpha = 0.08;
+    // Nébuleuse rouge au centre (plasma / explosion nucléaire)
+    bg.globalAlpha = 0.1;
     const neb1 = bg.createRadialGradient(210, 350, 20, 210, 350, 220);
-    neb1.addColorStop(0, '#ff44aa');
-    neb1.addColorStop(0.5, '#8800cc');
+    neb1.addColorStop(0, '#ff0000');
+    neb1.addColorStop(0.5, '#880000');
     neb1.addColorStop(1, 'transparent');
     bg.fillStyle = neb1;
     bg.fillRect(0, 100, W, 500);
 
-    // Nébuleuse cyan en bas
+    // Nébuleuse orange en bas
     const neb2 = bg.createRadialGradient(320, 560, 10, 320, 560, 170);
-    neb2.addColorStop(0, '#00ccff');
-    neb2.addColorStop(0.6, '#0044aa');
+    neb2.addColorStop(0, '#ff4400');
+    neb2.addColorStop(0.6, '#661100');
     neb2.addColorStop(1, 'transparent');
     bg.fillStyle = neb2;
     bg.fillRect(100, 400, 350, 350);
     bg.globalAlpha = 1;
 
-    // Dessin décoratif : grande fusée / vaisseau stylisé au centre
+    // Crâne Terminator T-800 stylisé au centre
     bg.save();
-    bg.translate(210, 480);
-    bg.globalAlpha = 0.07;
-    // Corps de la fusée
-    bg.fillStyle = '#ff6ec7';
+    bg.translate(210, 460);
+    bg.globalAlpha = 0.08;
+    // Forme du crâne
+    bg.fillStyle = '#888888';
     bg.beginPath();
-    bg.moveTo(0, -80);
-    bg.lineTo(20, -40);
-    bg.lineTo(20, 40);
-    bg.lineTo(30, 60);
-    bg.lineTo(-30, 60);
-    bg.lineTo(-20, 40);
-    bg.lineTo(-20, -40);
-    bg.closePath();
+    bg.arc(0, -20, 45, 0, Math.PI * 2);
     bg.fill();
-    // Hublot
-    bg.fillStyle = '#00ffff';
+    // Mâchoire
+    bg.fillRect(-30, 10, 60, 25);
+    // Yeux rouges
+    bg.fillStyle = '#ff0000';
     bg.beginPath();
-    bg.arc(0, -10, 10, 0, Math.PI * 2);
+    bg.arc(-15, -25, 10, 0, Math.PI * 2);
     bg.fill();
-    // Flammes
-    bg.fillStyle = '#ffaa00';
     bg.beginPath();
-    bg.moveTo(-15, 60);
-    bg.lineTo(0, 110);
-    bg.lineTo(15, 60);
-    bg.closePath();
+    bg.arc(15, -25, 10, 0, Math.PI * 2);
     bg.fill();
+    // Pupilles
     bg.fillStyle = '#ff4400';
     bg.beginPath();
-    bg.moveTo(-8, 60);
-    bg.lineTo(0, 95);
-    bg.lineTo(8, 60);
-    bg.closePath();
+    bg.arc(-15, -25, 5, 0, Math.PI * 2);
     bg.fill();
+    bg.beginPath();
+    bg.arc(15, -25, 5, 0, Math.PI * 2);
+    bg.fill();
+    // Dents
+    bg.fillStyle = '#aaaaaa';
+    for (let i = -25; i < 25; i += 8) {
+        bg.fillRect(i, 12, 6, 10);
+    }
     bg.restore();
 
-    // Éclairs décoratifs
-    bg.globalAlpha = 0.05;
-    bg.strokeStyle = '#00ffff';
+    // Éclairs rouges (circuits endommagés)
+    bg.globalAlpha = 0.07;
+    bg.strokeStyle = '#ff0000';
     bg.lineWidth = 2;
     bg.beginPath();
     bg.moveTo(70, 180);
@@ -509,7 +507,7 @@ function generateBackgroundImage() {
     bg.lineTo(100, 270);
     bg.stroke();
 
-    bg.strokeStyle = '#ff6ec7';
+    bg.strokeStyle = '#ff3300';
     bg.beginPath();
     bg.moveTo(340, 210);
     bg.lineTo(360, 250);
@@ -518,36 +516,43 @@ function generateBackgroundImage() {
     bg.stroke();
     bg.globalAlpha = 1;
 
-    // Anneaux décoratifs
+    // Cercles concentriques (viseur / HUD Terminator)
     bg.globalAlpha = 0.04;
-    bg.strokeStyle = '#ff6ec7';
+    bg.strokeStyle = '#ff0000';
     bg.lineWidth = 1;
     for (let r = 40; r < 200; r += 30) {
         bg.beginPath();
         bg.arc(210, 350, r, 0, Math.PI * 2);
         bg.stroke();
     }
+    // Réticule
+    bg.beginPath();
+    bg.moveTo(210, 200);
+    bg.lineTo(210, 500);
+    bg.moveTo(60, 350);
+    bg.lineTo(360, 350);
+    bg.stroke();
     bg.globalAlpha = 1;
 
-    // Textes décoratifs dans le plateau
+    // Textes Terminator
     bg.globalAlpha = 0.06;
-    bg.fillStyle = '#ff6ec7';
+    bg.fillStyle = '#ff0000';
     bg.font = 'bold 60px monospace';
     bg.textAlign = 'center';
-    bg.fillText('SPACE', 210, 580);
+    bg.fillText('SKYNET', 210, 580);
     bg.font = 'bold 40px monospace';
-    bg.fillStyle = '#00ffff';
-    bg.fillText('PINBALL', 210, 620);
+    bg.fillStyle = '#ff3300';
+    bg.fillText('T-800', 210, 620);
     bg.globalAlpha = 1;
 
-    // Surface de jeu (zone légèrement plus claire)
-    bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
+    // Surface de jeu
+    bg.fillStyle = 'rgba(30, 5, 5, 0.3)';
     bg.beginPath();
     bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
     bg.lineTo(LANE_INNER_X - 5, WALL_TOP + 5);
     bg.lineTo(LANE_INNER_X - 5, 510);
-    bg.lineTo(290, 720);
-    bg.lineTo(125, 720);
+    bg.lineTo(FLIPPER_RIGHT_X + 10, 720);
+    bg.lineTo(FLIPPER_LEFT_X - 10, 720);
     bg.lineTo(WALL_LEFT + 5, 510);
     bg.closePath();
     bg.fill();
@@ -560,13 +565,13 @@ function drawBackground() {
     // Fond pré-rendu
     ctx.drawImage(bgCanvas, 0, 0);
 
-    // Étoiles scintillantes (animées par-dessus le fond fixe)
+    // Étincelles scintillantes (animées — débris métalliques)
     const time = Date.now() / 1000;
     for (const star of stars) {
         const twinkle = 0.3 + 0.7 * Math.sin(time * star.speed * 80 + star.x * 10);
         if (twinkle > 0.6) {
             ctx.globalAlpha = (twinkle - 0.6) * 2.5 * star.brightness;
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = twinkle > 0.8 ? '#ff3300' : '#ff6600';
             ctx.beginPath();
             ctx.arc(star.x, star.y, star.size * 1.5, 0, Math.PI * 2);
             ctx.fill();
@@ -580,24 +585,24 @@ function drawWalls() {
     ctx.lineJoin = 'round';
 
     for (const wall of walls) {
-        // Lueur extérieure
-        ctx.strokeStyle = 'rgba(255, 110, 199, 0.12)';
+        // Lueur extérieure rouge
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.12)';
         ctx.lineWidth = 10;
         ctx.beginPath();
         ctx.moveTo(wall.x1, wall.y1);
         ctx.lineTo(wall.x2, wall.y2);
         ctx.stroke();
 
-        // Mur principal
-        ctx.strokeStyle = '#c44a9e';
+        // Mur principal métallique
+        ctx.strokeStyle = '#884444';
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.moveTo(wall.x1, wall.y1);
         ctx.lineTo(wall.x2, wall.y2);
         ctx.stroke();
 
-        // Highlight intérieur
-        ctx.strokeStyle = '#ff8ed4';
+        // Highlight rouge
+        ctx.strokeStyle = '#ff3333';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(wall.x1, wall.y1);
@@ -605,49 +610,55 @@ function drawWalls() {
         ctx.stroke();
     }
 
-    // Petits guides lumineux au-dessus des flippers
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+    // Guides lumineux au-dessus des flippers
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
     ctx.beginPath();
-    ctx.moveTo(125, 720);
-    ctx.lineTo(135, 725);
-    ctx.lineTo(115, 730);
+    ctx.moveTo(FLIPPER_LEFT_X - 10, 720);
+    ctx.lineTo(FLIPPER_LEFT_X, FLIPPER_Y);
+    ctx.lineTo(FLIPPER_LEFT_X - 20, 730);
     ctx.closePath();
     ctx.fill();
 
     ctx.beginPath();
-    ctx.moveTo(290, 720);
-    ctx.lineTo(280, 725);
-    ctx.lineTo(300, 730);
+    ctx.moveTo(FLIPPER_RIGHT_X + 10, 720);
+    ctx.lineTo(FLIPPER_RIGHT_X, FLIPPER_Y);
+    ctx.lineTo(FLIPPER_RIGHT_X + 20, 730);
     ctx.closePath();
     ctx.fill();
 }
 
 function drawBall() {
+    // Lueur rouge autour de la bille
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 12;
+
     // Ombre
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
     ctx.arc(ball.x + 3, ball.y + 3, ball.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bille métallique
+    // Bille chrome/endosquelette
     const gradient = ctx.createRadialGradient(
         ball.x - 3, ball.y - 3, 1,
         ball.x, ball.y, ball.radius
     );
     gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(0.4, '#c0c0c0');
-    gradient.addColorStop(1, '#606060');
+    gradient.addColorStop(0.3, '#dddddd');
+    gradient.addColorStop(0.6, '#888888');
+    gradient.addColorStop(1, '#333333');
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.strokeStyle = 'rgba(255,50,50,0.6)';
     ctx.lineWidth = 1;
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    // Reflet
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    // Reflet rouge
+    ctx.fillStyle = 'rgba(255,100,100,0.7)';
     ctx.beginPath();
     ctx.arc(ball.x - 3, ball.y - 3, ball.radius * 0.25, 0, Math.PI * 2);
     ctx.fill();
@@ -659,7 +670,7 @@ function drawFlippers() {
         ctx.save();
 
         // Ombre
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
         ctx.lineWidth = FLIPPER_WIDTH + 4;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -667,11 +678,13 @@ function drawFlippers() {
         ctx.lineTo(end.x + 2, end.y + 2);
         ctx.stroke();
 
-        // Corps du flipper
+        // Corps du flipper — chrome Terminator
         const grad = ctx.createLinearGradient(flipper.x, flipper.y, end.x, end.y);
-        grad.addColorStop(0, '#00cccc');
-        grad.addColorStop(0.5, '#00ffff');
-        grad.addColorStop(1, '#00aaaa');
+        grad.addColorStop(0, '#999999');
+        grad.addColorStop(0.3, '#cccccc');
+        grad.addColorStop(0.5, '#eeeeee');
+        grad.addColorStop(0.7, '#cccccc');
+        grad.addColorStop(1, '#888888');
         ctx.strokeStyle = grad;
         ctx.lineWidth = FLIPPER_WIDTH;
         ctx.lineCap = 'round';
@@ -680,24 +693,24 @@ function drawFlippers() {
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
 
-        // Highlight
-        ctx.strokeStyle = 'rgba(200,255,255,0.5)';
+        // Highlight rouge
+        ctx.strokeStyle = 'rgba(255,50,50,0.4)';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(flipper.x, flipper.y);
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
 
-        // Pivot
+        // Pivot — œil rouge T-800
         const pivotGrad = ctx.createRadialGradient(flipper.x - 1, flipper.y - 1, 1, flipper.x, flipper.y, 8);
-        pivotGrad.addColorStop(0, '#ffffff');
-        pivotGrad.addColorStop(0.5, '#ff6ec7');
-        pivotGrad.addColorStop(1, '#aa3377');
+        pivotGrad.addColorStop(0, '#ff0000');
+        pivotGrad.addColorStop(0.5, '#cc0000');
+        pivotGrad.addColorStop(1, '#660000');
         ctx.fillStyle = pivotGrad;
         ctx.beginPath();
         ctx.arc(flipper.x, flipper.y, 7, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#ff8ed4';
+        ctx.strokeStyle = '#ff3333';
         ctx.lineWidth = 1;
         ctx.stroke();
 
@@ -712,31 +725,31 @@ function drawBumpers() {
         ctx.save();
 
         // Ombre
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.beginPath();
         ctx.arc(bumper.x + 3, bumper.y + 3, bumper.radius + 2, 0, Math.PI * 2);
         ctx.fill();
 
         if (g > 0.1) {
-            ctx.shadowColor = isSpecial ? '#ffaa00' : '#ffff00';
+            ctx.shadowColor = isSpecial ? '#ff0000' : '#ff3300';
             ctx.shadowBlur = (isSpecial ? 60 : 40) * g;
         }
 
-        // Corps — doré pour le MEGA, rose/violet pour les normaux
+        // Corps — rouge/chrome pour le MEGA, gris métallique pour les normaux
         const grad = ctx.createRadialGradient(
             bumper.x - bumper.radius * 0.3, bumper.y - bumper.radius * 0.3, 2,
             bumper.x, bumper.y, bumper.radius
         );
         if (isSpecial) {
-            const bright = Math.floor(220 + 35 * g);
-            grad.addColorStop(0, `rgb(${bright}, ${Math.floor(200 + 55 * g)}, ${Math.floor(50 + 80 * g)})`);
-            grad.addColorStop(0.6, '#cc8800');
-            grad.addColorStop(1, '#885500');
-        } else {
             const bright = Math.floor(200 + 55 * g);
-            grad.addColorStop(0, `rgb(${bright}, ${Math.floor(80 + 175 * g)}, ${Math.floor(180 + 75 * g)})`);
-            grad.addColorStop(0.7, '#cc3388');
-            grad.addColorStop(1, '#881155');
+            grad.addColorStop(0, `rgb(${bright}, ${Math.floor(30 + 40 * g)}, ${Math.floor(10 + 20 * g)})`);
+            grad.addColorStop(0.6, '#aa0000');
+            grad.addColorStop(1, '#550000');
+        } else {
+            const bright = Math.floor(160 + 95 * g);
+            grad.addColorStop(0, `rgb(${bright}, ${Math.floor(60 + 60 * g)}, ${Math.floor(40 + 40 * g)})`);
+            grad.addColorStop(0.7, '#663333');
+            grad.addColorStop(1, '#331111');
         }
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -745,40 +758,40 @@ function drawBumpers() {
 
         // Anneau extérieur
         ctx.strokeStyle = isSpecial
-            ? (g > 0.3 ? `rgba(255,215,0,${0.5 + g * 0.5})` : '#ffaa44')
-            : (g > 0.3 ? `rgba(255,255,0,${0.5 + g * 0.5})` : '#ff6ec7');
+            ? (g > 0.3 ? `rgba(255,0,0,${0.5 + g * 0.5})` : '#cc3333')
+            : (g > 0.3 ? `rgba(255,100,0,${0.5 + g * 0.5})` : '#ff3300');
         ctx.lineWidth = isSpecial ? 4 : 3;
         ctx.stroke();
         ctx.shadowBlur = 0;
 
         // Anneau intérieur
-        ctx.strokeStyle = `rgba(255,255,255,${0.2 + g * 0.3})`;
+        ctx.strokeStyle = `rgba(255,100,100,${0.2 + g * 0.3})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(bumper.x, bumper.y, bumper.radius * 0.65, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Étoiles décoratives autour du MEGA bumper
+        // Éléments Terminator autour du MEGA bumper (viseur)
         if (isSpecial) {
             const time = Date.now() / 600;
             for (let i = 0; i < 6; i++) {
                 const a = time + (i * Math.PI * 2 / 6);
                 const sx = bumper.x + Math.cos(a) * (bumper.radius + 8);
                 const sy = bumper.y + Math.sin(a) * (bumper.radius + 8);
-                ctx.fillStyle = `rgba(255,215,0,${0.4 + 0.3 * Math.sin(time + i)})`;
+                ctx.fillStyle = `rgba(255,0,0,${0.4 + 0.3 * Math.sin(time + i)})`;
                 ctx.font = '8px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('✦', sx, sy);
+                ctx.fillText('⚡', sx, sy);
             }
         }
 
         // Points
-        ctx.fillStyle = isSpecial ? '#fff' : '#fff';
+        ctx.fillStyle = '#fff';
         ctx.font = `bold ${bumper.radius > 24 ? 14 : (bumper.radius > 20 ? 13 : 10)}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(isSpecial ? '★' + bumper.points : bumper.points, bumper.x, bumper.y);
+        ctx.fillText(isSpecial ? '☠' + bumper.points : bumper.points, bumper.x, bumper.y);
 
         ctx.restore();
     }
@@ -800,9 +813,9 @@ function drawLauncher() {
 
     if (fillHeight > 0) {
         const grad = ctx.createLinearGradient(barX, barY + barHeight, barX, barY);
-        grad.addColorStop(0, '#00cc00');
-        grad.addColorStop(0.5, '#ffcc00');
-        grad.addColorStop(1, '#ff2200');
+        grad.addColorStop(0, '#880000');
+        grad.addColorStop(0.5, '#ff0000');
+        grad.addColorStop(1, '#ff4400');
         ctx.fillStyle = grad;
         ctx.fillRect(barX + 2, barY + barHeight - fillHeight, barWidth - 4, fillHeight);
     }
@@ -832,10 +845,10 @@ function drawLauncher() {
 }
 
 function drawScore() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillStyle = 'rgba(20, 0, 0, 0.6)';
     ctx.fillRect(WALL_LEFT, WALL_TOP - 28, LANE_INNER_X - WALL_LEFT, 24);
 
-    ctx.fillStyle = '#00ffdd';
+    ctx.fillStyle = '#ff3333';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`SCORE ${score}`, WALL_LEFT + 8, WALL_TOP - 10);
@@ -872,56 +885,78 @@ function drawTitleScreen() {
     drawBumpers();
     ctx.globalAlpha = 1;
 
-    // Titre
-    ctx.shadowColor = '#ff6ec7';
+    // Titre TERMINATOR
+    ctx.shadowColor = '#ff0000';
     ctx.shadowBlur = 30 * pulse;
-    ctx.fillStyle = '#ff6ec7';
-    ctx.font = 'bold 52px monospace';
+    ctx.fillStyle = '#ff0000';
+    ctx.font = 'bold 44px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('FLIPPER', W / 2, 280);
+    ctx.fillText('TERMINATOR', W / 2, 270);
     ctx.shadowBlur = 0;
 
     // Sous-titre
-    ctx.shadowColor = '#00ffff';
+    ctx.shadowColor = '#ff3300';
     ctx.shadowBlur = 15;
-    ctx.fillStyle = '#00ffff';
+    ctx.fillStyle = '#cc0000';
     ctx.font = 'bold 24px monospace';
-    ctx.fillText('\u26A1 ARCADE \u26A1', W / 2, 330);
+    ctx.fillText('⚡ PINBALL ⚡', W / 2, 315);
     ctx.shadowBlur = 0;
 
-    // Petite planète décorative
-    const planetGrad = ctx.createRadialGradient(W / 2 - 10, 390, 5, W / 2, 400, 40);
-    planetGrad.addColorStop(0, '#6644aa');
-    planetGrad.addColorStop(0.7, '#3322aa');
-    planetGrad.addColorStop(1, '#110055');
-    ctx.fillStyle = planetGrad;
+    // Œil T-800
+    const eyeGrad = ctx.createRadialGradient(W / 2, 390, 5, W / 2, 390, 40);
+    eyeGrad.addColorStop(0, '#ff0000');
+    eyeGrad.addColorStop(0.4, '#cc0000');
+    eyeGrad.addColorStop(0.7, '#440000');
+    eyeGrad.addColorStop(1, '#110000');
+    ctx.fillStyle = eyeGrad;
     ctx.beginPath();
-    ctx.arc(W / 2, 400, 35, 0, Math.PI * 2);
+    ctx.arc(W / 2, 390, 35, 0, Math.PI * 2);
     ctx.fill();
-    // Anneau
-    ctx.strokeStyle = 'rgba(200, 180, 255, 0.4)';
-    ctx.lineWidth = 3;
+    // Pupille
+    ctx.fillStyle = '#ff3300';
     ctx.beginPath();
-    ctx.ellipse(W / 2, 400, 55, 12, -0.3, 0, Math.PI * 2);
+    ctx.arc(W / 2, 390, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(W / 2, 390, 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Anneau viseur
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(W / 2, 390, 50, 0, Math.PI * 2);
+    ctx.stroke();
+    // Réticule
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 55, 390);
+    ctx.lineTo(W / 2 + 55, 390);
+    ctx.moveTo(W / 2, 335);
+    ctx.lineTo(W / 2, 445);
     ctx.stroke();
 
     // Instructions
-    ctx.fillStyle = '#8888aa';
+    ctx.fillStyle = '#888888';
     ctx.font = '13px monospace';
-    ctx.fillText('\u2190 \u2192  Flippers', W / 2, 470);
+    ctx.fillText('← →  Flippers', W / 2, 470);
     ctx.fillText('ESPACE  Lancer', W / 2, 492);
 
-    // Start clignotant
+    // "I\'LL BE BACK" clignotant
     ctx.globalAlpha = 0.4 + 0.6 * Math.sin(time * 4);
-    ctx.fillStyle = '#ffff00';
+    ctx.fillStyle = '#ff0000';
     ctx.font = 'bold 20px monospace';
-    ctx.fillText('APPUIE SUR ESPACE', W / 2, 570);
+    ctx.fillText("I'LL BE BACK", W / 2, 560);
     ctx.globalAlpha = 1;
 
+    ctx.fillStyle = '#666';
+    ctx.font = '12px monospace';
+    ctx.fillText('APPUIE SUR ESPACE', W / 2, 590);
+
     if (highScore > 0) {
-        ctx.fillStyle = '#ff6ec7';
+        ctx.fillStyle = '#ff3333';
         ctx.font = '14px monospace';
-        ctx.fillText(`RECORD: ${highScore}`, W / 2, 620);
+        ctx.fillText(`RECORD: ${highScore}`, W / 2, 630);
     }
 
     ctx.restore();
@@ -936,41 +971,45 @@ function drawGameOverScreen() {
     ctx.globalAlpha = 1;
     drawFlippers();
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillStyle = 'rgba(10, 0, 0, 0.8)';
     ctx.fillRect(0, 0, W, H);
 
     const time = Date.now() / 1000;
     ctx.save();
 
-    ctx.shadowColor = '#ff3333';
-    ctx.shadowBlur = 25;
-    ctx.fillStyle = '#ff3333';
-    ctx.font = 'bold 44px monospace';
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = '#ff0000';
+    ctx.font = 'bold 40px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', W / 2, 310);
+    ctx.fillText('TERMINATED', W / 2, 310);
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle = '#00ffdd';
+    ctx.fillStyle = '#ff3333';
     ctx.font = 'bold 30px monospace';
     ctx.fillText(`${score}`, W / 2, 370);
-    ctx.fillStyle = '#777';
+    ctx.fillStyle = '#666';
     ctx.font = '14px monospace';
     ctx.fillText('POINTS', W / 2, 392);
 
     if (score >= highScore && score > 0) {
-        ctx.shadowColor = '#ffff00';
+        ctx.shadowColor = '#ff0000';
         ctx.shadowBlur = 15;
-        ctx.fillStyle = '#ffff00';
+        ctx.fillStyle = '#ff3300';
         ctx.font = 'bold 18px monospace';
-        ctx.fillText('\u2605 NOUVEAU RECORD \u2605', W / 2, 440);
+        ctx.fillText('⚡ NOUVEAU RECORD ⚡', W / 2, 440);
         ctx.shadowBlur = 0;
     }
 
     ctx.globalAlpha = 0.4 + 0.6 * Math.sin(time * 4);
-    ctx.fillStyle = '#ffff00';
+    ctx.fillStyle = '#ff0000';
     ctx.font = '15px monospace';
-    ctx.fillText('APPUIE SUR ESPACE', W / 2, 510);
+    ctx.fillText("I'LL BE BACK", W / 2, 500);
     ctx.globalAlpha = 1;
+
+    ctx.fillStyle = '#666';
+    ctx.font = '12px monospace';
+    ctx.fillText('APPUIE SUR ESPACE', W / 2, 530);
 
     ctx.restore();
 }
