@@ -42,7 +42,68 @@ Ou scanne ce QR code pour jouer en ligne :
 
 Pendant ce stage, j'ai vu comment un développeur travaille au quotidien. Ce n'est pas juste « écrire du code » : il faut d'abord **réfléchir** à ce qu'on veut faire, **découper** le travail en petites étapes, et surtout **tester** souvent pour vérifier que ça marche. Quand quelque chose ne fonctionne pas (un bug), on ne panique pas : on lit les messages d'erreur, on cherche d'où vient le problème, et on corrige. C'est un peu comme un puzzle à résoudre !
 
-J'ai aussi compris que le développeur ne travaille presque jamais seul. Il utilise des outils pour partager son code avec les autres (Git et GitHub), et il doit écrire du code clair pour que ses collègues puissent le comprendre.
+J'ai aussi compris que le développeur ne travaille presque jamais seul. Aujourd'hui, il travaille **avec une IA** comme GitHub Copilot, qui est un vrai partenaire de code.
+
+### 🤖 Le Vibe Coding : coder avec l'IA
+
+Ce projet a été réalisé entièrement en **"vibe coding"** : c'est une nouvelle façon de développer où on travaille **main dans la main avec une intelligence artificielle**. Concrètement, au lieu d'écrire chaque ligne de code à la main, on **discute avec l'IA** :
+
+- On lui décrit ce qu'on veut : *"je veux un flipper web avec une ambiance Terminator"*
+- L'IA génère le code, on teste, on lui dit ce qui ne va pas : *"la balle traverse les flippers"*
+- Elle corrige, améliore, et on recommence jusqu'à ce que ce soit parfait
+
+C'est comme avoir un développeur senior à côté de soi qui code à notre place pendant qu'on donne les directions. On se concentre sur les **idées** et le **résultat**, et l'IA s'occupe de la technique.
+
+> 💡 **Ce que j'ai appris** : le métier de développeur évolue. On n'a plus besoin de tout savoir par cœur. L'important c'est de savoir **expliquer ce qu'on veut**, **tester** et **guider l'IA**. C'est comme être le réalisateur d'un film : on ne tient pas la caméra, mais c'est notre vision qui compte.
+
+### 🏗️ Architecture du jeu (comment ça marche)
+
+```
+┌─────────────────────────────────────────────────┐
+│                  INDEX.HTML                     │
+│          (la page web = le squelette)           │
+│                                                 │
+│   ┌──────────┐  ┌────────────┐  ┌───────────┐  │
+│   │ STYLE.CSS│  │  CANVAS    │  │  GAME.JS  │  │
+│   │ (le look)│  │ (l'écran)  │  │ (le code) │  │
+│   └──────────┘  └─────┬──────┘  └─────┬─────┘  │
+│                       │               │         │
+└───────────────────────┼───────────────┼─────────┘
+                        │               │
+                        ▼               ▼
+              ┌─────────────────────────────────┐
+              │        BOUCLE DE JEU            │
+              │     (60 fois par seconde)       │
+              │                                 │
+              │  1. 🎮 Lire les touches         │
+              │        │                        │
+              │        ▼                        │
+              │  2. 🧮 Calculer                 │
+              │     • Gravité sur la bille      │
+              │     • Mouvement des flippers    │
+              │     • Collisions (Pythagore!)   │
+              │     • Score                     │
+              │        │                        │
+              │        ▼                        │
+              │  3. 🎨 Dessiner                 │
+              │     • Fond Terminator           │
+              │     • Murs, bumpers, flippers   │
+              │     • Bille + particules        │
+              │     • Score + vies              │
+              └─────────────────────────────────┘
+
+     ┌──────────────────────────────────────────┐
+     │          FICHIERS DU PROJET              │
+     │                                          │
+     │  📄 index.html  → Structure de la page   │
+     │  🎨 style.css   → Couleurs, bordures     │
+     │  ⚙️ game.js     → Toute la logique       │
+     │     ├─ Physique (gravité, rebonds)       │
+     │     ├─ Collisions (murs, flippers...)    │
+     │     ├─ Dessin (Canvas 2D)                │
+     │     └─ Contrôles (clavier + tactile)     │
+     └──────────────────────────────────────────┘
+```
 
 ### Comment un jeu vidéo fonctionne
 
@@ -56,19 +117,19 @@ Pour la physique, on utilise des maths qu'on apprend au collège : la gravité f
 
 ### Les outils utilisés
 
+- **GitHub Copilot** : l'IA qui a codé le jeu avec nous. On lui parle en français, elle génère le code. C'est l'outil principal du vibe coding !
 - **VS Code** : l'éditeur de code. C'est comme un Word, mais pour écrire du code avec de la coloration et de l'aide automatique
 - **Git** : un outil qui garde l'historique de toutes les modifications. Si on casse quelque chose, on peut revenir en arrière !
-- **GitHub** : un site web où on stocke le code en ligne. Ça permet de travailler à plusieurs et de montrer son projet au monde entier
+- **GitHub** : un site web où on stocke le code en ligne et où le jeu est hébergé (GitHub Pages)
 - **Le navigateur** (Chrome, Edge...) : c'est lui qui exécute notre jeu. On peut aussi y ouvrir les "outils développeur" (F12) pour voir ce qui se passe en coulisses
-- **GitHub Copilot** : une intelligence artificielle qui aide à coder plus vite en proposant du code
 
 ### Ce qui m'a plu / surpris / posé problème
 
-Ce qui m'a **plu**, c'est de voir le jeu prendre forme petit à petit. Au début c'est juste un rectangle vide, et à la fin c'est un vrai flipper avec des effets visuels et du son ! C'est très satisfaisant de voir le résultat de son travail directement à l'écran.
+Ce qui m'a **plu**, c'est le vibe coding ! On n'a pas eu besoin d'écrire une seule ligne de code à la main. On a juste **discuté avec l'IA** en lui disant ce qu'on voulait : un flipper, puis une ambiance Terminator, puis corriger la physique... Et à chaque fois, elle a fait le travail en quelques secondes. C'est comme avoir un super-pouvoir ! En une heure, on a créé un jeu complet qu'il aurait fallu des jours à coder tout seul.
 
-Ce qui m'a **surpris**, c'est la quantité de maths et de logique qu'il y a derrière un jeu aussi simple. Juste faire rebondir une bille correctement, ça demande pas mal de calculs ! Et aussi, j'ai été surpris de voir qu'un développeur passe plus de temps à chercher des bugs qu'à écrire du nouveau code.
+Ce qui m'a **surpris**, c'est à quel point l'IA comprend ce qu'on veut. On lui dit *"la balle traverse les flippers"* et elle sait exactement quel calcul modifier dans le code. On lui dit *"ambiance Terminator"* et elle change toutes les couleurs, ajoute un crâne T-800 et écrit "I'LL BE BACK". Elle comprend aussi bien le français que l'anglais.
 
-Ce qui m'a **posé problème**, c'est le couloir de lancement : faire en sorte que la bille suive le bon chemin et arrive sur le plateau de jeu, ça a pris plusieurs essais. Ça m'a appris que coder c'est souvent essayer, se tromper, et recommencer — et c'est normal !
+Ce qui m'a **posé problème**, c'est qu'il faut quand même **tester et vérifier**. L'IA ne se trompe pas souvent, mais parfois elle oublie un détail ou fait un bug. Il faut savoir repérer les problèmes et bien les expliquer pour qu'elle les corrige. Le métier de développeur change : demain, ce sera surtout **savoir poser les bonnes questions** et **avoir les bonnes idées**.
 
 ---
 
