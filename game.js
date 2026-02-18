@@ -305,7 +305,7 @@ function collideFlippers() {
 
             const angVel = flipper.angularVelocity || 0;
             const contactDist = Math.sqrt((closest.x - flipper.x) ** 2 + (closest.y - flipper.y) ** 2);
-            const hitStrength = Math.abs(angVel) * contactDist * 1.8;
+            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.2, 8);
 
             const dot = ball.vx * nx + ball.vy * ny;
             ball.vx = (ball.vx - 2 * dot * nx) * BOUNCE;
@@ -313,9 +313,16 @@ function collideFlippers() {
 
             // Impulsion du flipper : envoie la bille vers le haut
             if (Math.abs(angVel) > 0.01) {
-                ball.vy -= hitStrength * 1.4;
+                ball.vy -= hitStrength;
                 const dir = flipper.side === 'left' ? 1 : -1;
-                ball.vx += dir * hitStrength * 0.5;
+                ball.vx += dir * hitStrength * 0.4;
+            }
+
+            // Clamper la vitesse immédiatement après le coup
+            const spd = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+            if (spd > MAX_SPEED) {
+                ball.vx = (ball.vx / spd) * MAX_SPEED;
+                ball.vy = (ball.vy / spd) * MAX_SPEED;
             }
         }
     }
