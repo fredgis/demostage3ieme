@@ -50,7 +50,7 @@ const ball = {
 const launcher = {
     x: 355, y: 630,
     power: 0,
-    maxPower: 14,
+    maxPower: 18,
     charging: false
 };
 
@@ -399,7 +399,7 @@ function updateLauncher() {
 }
 
 // --- Mise à jour de la bille ---
-const MAX_SPEED = 14;  // Vitesse max pour éviter de traverser les murs
+const MAX_SPEED = 18;  // Vitesse max — le sub-stepping (ceil(18/8)=3 pas) protège les murs
 
 function updateBall() {
     if (!ball.launched) return;
