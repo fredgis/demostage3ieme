@@ -114,19 +114,17 @@ const walls = [
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur du haut (s'arrête avant le couloir pour laisser passer la bille)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: 290, y2: WALL_TOP },
-    // Rampe d'entrée : guide la bille du couloir vers le plateau
-    { x1: 290, y1: WALL_TOP, x2: LANE_INNER_X, y2: WALL_TOP + 50 },
+    // Mur du haut (de gauche jusqu'au début de l'arc arrondi)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: CORNER_CX, y2: WALL_TOP },
     // Arc arrondi en haut à droite
     ...cornerArc,
-    // Mur droit du plateau (de la rampe jusqu'au diagonal)
-    { x1: LANE_INNER_X, y1: WALL_TOP + 50, x2: LANE_INNER_X, y2: 430 },
+    // Mur droit du plateau
+    { x1: LANE_INNER_X, y1: WALL_TOP, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
     // Couloir lanceur : mur extérieur droit
     { x1: LANE_OUTER_X, y1: CORNER_CY, x2: LANE_OUTER_X, y2: H },
-    // Couloir lanceur : mur intérieur (seulement SOUS le plateau)
+    // Couloir lanceur : mur intérieur (sous le plateau)
     { x1: LANE_INNER_X, y1: 430, x2: LANE_INNER_X, y2: H },
     // Guides anti-blocage entre les flippers
     { x1: 155, y1: 640, x2: 182, y2: 660 },
@@ -572,12 +570,11 @@ function generateBackgroundImage() {
     bg.fillText('PINBALL', 180, 560);
     bg.globalAlpha = 1;
 
-    // Surface de jeu (zone légèrement plus claire) avec rampe d'entrée
+    // Surface de jeu (zone légèrement plus claire)
     bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
     bg.beginPath();
     bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
-    bg.lineTo(290, WALL_TOP + 5);
-    bg.lineTo(LANE_INNER_X - 5, WALL_TOP + 55);
+    bg.lineTo(LANE_INNER_X - 5, WALL_TOP + 5);
     bg.lineTo(LANE_INNER_X - 5, 430);
     bg.lineTo(265, 620);
     bg.lineTo(110, 620);
