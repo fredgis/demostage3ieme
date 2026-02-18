@@ -1,6 +1,8 @@
-# 🎰 Flipper Web
+# 🤖 Terminator Pinball
 
-Un jeu de flipper jouable dans le navigateur, codé en HTML, CSS et JavaScript.
+Un jeu de flipper ambiance Terminator jouable dans le navigateur, codé en HTML, CSS et JavaScript.
+
+![Terminator Pinball](screenshot.png)
 
 ## 🎮 Comment jouer
 
