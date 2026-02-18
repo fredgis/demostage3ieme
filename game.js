@@ -1,5 +1,5 @@
 // ============================================
-// 🎰 FLIPPER WEB — Phase 3 : Bumpers, Score & Lanceur
+// 🎰 FLIPPER WEB — Version complète !
 // ============================================
 
 const canvas = document.getElementById('pinball');
@@ -13,12 +13,18 @@ const GRAVITY = 0.15;
 const FRICTION = 0.995;
 const BOUNCE = 0.7;
 
-// --- Score ---
+// --- État du jeu ---
 let score = 0;
+let lives = 3;
+let gameState = 'title';  // 'title', 'playing', 'gameover'
+let highScore = parseInt(localStorage.getItem('flipperHighScore') || '0');
+
+// --- Particules ---
+const particles = [];
 
 // --- La bille ---
 const ball = {
-    x: 355, y: 600,   // Démarre dans le couloir du lanceur
+    x: 355, y: 600,
     vx: 0, vy: 0,
     radius: 8,
     color: '#ffffff',
@@ -32,6 +38,23 @@ const launcher = {
     maxPower: 18,
     charging: false
 };
+
+function resetBall() {
+    ball.x = 355;
+    ball.y = 600;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.launched = false;
+    launcher.power = 0;
+    launcher.charging = false;
+}
+
+function startGame() {
+    score = 0;
+    lives = 3;
+    gameState = 'playing';
+    resetBall();
+}
 
 // --- Murs du plateau ---
 const walls = [
@@ -74,13 +97,18 @@ document.addEventListener('keydown', (e) => {
     keys[e.key] = true;
     if (e.key === ' ') {
         e.preventDefault();
-        if (!launcher.charging && !ball.launched) launcher.charging = true;
+        if (gameState === 'title') {
+            startGame();
+        } else if (gameState === 'gameover') {
+            startGame();
+        } else if (gameState === 'playing' && !launcher.charging && !ball.launched) {
+            launcher.charging = true;
+        }
     }
 });
 document.addEventListener('keyup', (e) => {
     keys[e.key] = false;
-    if (e.key === ' ' && launcher.charging) {
-        // Lancer la bille !
+    if (e.key === ' ' && launcher.charging && gameState === 'playing') {
         ball.vy = -launcher.power;
         ball.launched = true;
         launcher.charging = false;
@@ -131,10 +159,18 @@ function collideWalls() {
         }
     }
 
-    // Rebond sur le sol (temporaire — sera remplacé par le drain + game over)
-    if (ball.y + ball.radius > H - 10) {
-        ball.y = H - 10 - ball.radius;
-        ball.vy *= -BOUNCE;
+    // Drain : la bille tombe en bas → perte de vie
+    if (ball.y - ball.radius > H) {
+        lives--;
+        if (lives <= 0) {
+            gameState = 'gameover';
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flipperHighScore', highScore.toString());
+            }
+        } else {
+            resetBall();
+        }
     }
 }
 
@@ -223,13 +259,52 @@ function collideBumpers() {
             ball.vx = nx * reboundSpeed;
             ball.vy = ny * reboundSpeed;
 
-            // Score + effet visuel
+            // Score + effet visuel + particules
             score += bumper.points;
             bumper.glow = 1.0;
+            spawnParticles(bumper.x, bumper.y, 8);
         }
         // Fade du glow
         if (bumper.glow > 0) bumper.glow -= 0.03;
     }
+}
+
+// --- Particules ---
+function spawnParticles(x, y, count) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            color: ['#ffff00', '#ff6ec7', '#00ffff', '#ff4444'][Math.floor(Math.random() * 4)],
+            size: 2 + Math.random() * 3
+        });
+    }
+}
+
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+        p.size *= 0.98;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+function drawParticles() {
+    for (const p of particles) {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 }
 
 // --- Lanceur : mise à jour ---
@@ -387,22 +462,155 @@ function drawScore() {
     ctx.shadowBlur = 10;
     ctx.fillText(`SCORE: ${score}`, 40, 35);
     ctx.shadowBlur = 0;
+
+    // Vies (petites billes)
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('VIES:', 310, 35);
+    for (let i = 0; i < lives; i++) {
+        ctx.fillStyle = '#ff6ec7';
+        ctx.beginPath();
+        ctx.arc(320 + i * 18, 31, 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// --- Écran titre ---
+function drawTitleScreen() {
+    drawBackground();
+
+    // Titre avec glow animé
+    const time = Date.now() / 1000;
+    const pulse = 0.7 + 0.3 * Math.sin(time * 3);
+
+    ctx.save();
+    ctx.shadowColor = '#ff6ec7';
+    ctx.shadowBlur = 30 * pulse;
+    ctx.fillStyle = '#ff6ec7';
+    ctx.font = 'bold 50px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('FLIPPER', W / 2, 250);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 30px monospace';
+    ctx.fillText('🎰 WEB 🎰', W / 2, 310);
+
+    // Instructions
+    ctx.fillStyle = '#aaa';
+    ctx.font = '14px monospace';
+    ctx.fillText('← → : Flippers', W / 2, 400);
+    ctx.fillText('ESPACE : Lancer la bille', W / 2, 425);
+
+    // Start
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(time * 4);
+    ctx.fillStyle = '#ffff00';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('APPUIE SUR ESPACE', W / 2, 520);
+    ctx.globalAlpha = 1;
+
+    // High score
+    if (highScore > 0) {
+        ctx.fillStyle = '#ff6ec7';
+        ctx.font = '16px monospace';
+        ctx.fillText(`MEILLEUR SCORE: ${highScore}`, W / 2, 580);
+    }
+    ctx.restore();
+}
+
+// --- Écran game over ---
+function drawGameOverScreen() {
+    drawBackground();
+    drawWalls();
+    drawBumpers();
+    drawFlippers();
+
+    // Overlay sombre
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, W, H);
+
+    const time = Date.now() / 1000;
+
+    ctx.save();
+    ctx.shadowColor = '#ff4444';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 40px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W / 2, 280);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 28px monospace';
+    ctx.fillText(`SCORE: ${score}`, W / 2, 340);
+
+    if (score >= highScore && score > 0) {
+        ctx.fillStyle = '#ffff00';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText('🏆 NOUVEAU RECORD ! 🏆', W / 2, 390);
+    }
+
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(time * 4);
+    ctx.fillStyle = '#ffff00';
+    ctx.font = '16px monospace';
+    ctx.fillText('APPUIE SUR ESPACE', W / 2, 460);
+    ctx.globalAlpha = 1;
+    ctx.restore();
 }
 
 // --- Game Loop ---
 function gameLoop() {
-    drawBackground();
-    drawWalls();
-    updateFlippers();
-    updateLauncher();
-    updateBall();
-    drawBumpers();
-    drawFlippers();
-    drawBall();
-    drawLauncher();
-    drawScore();
+    if (gameState === 'title') {
+        drawTitleScreen();
+    } else if (gameState === 'gameover') {
+        drawGameOverScreen();
+    } else {
+        drawBackground();
+        drawWalls();
+        updateFlippers();
+        updateLauncher();
+        updateBall();
+        updateParticles();
+        drawBumpers();
+        drawFlippers();
+        drawParticles();
+        drawBall();
+        drawLauncher();
+        drawScore();
+    }
     requestAnimationFrame(gameLoop);
 }
+
+// --- Contrôles tactiles ---
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+
+if (btnLeft && btnRight) {
+    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
+    btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowLeft'] = false; });
+    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
+    btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowRight'] = false; });
+}
+
+// Tap sur le canvas pour lancer (mobile)
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameState === 'title' || gameState === 'gameover') {
+        startGame();
+    } else if (!ball.launched) {
+        launcher.charging = true;
+    }
+});
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (launcher.charging && gameState === 'playing') {
+        ball.vy = -launcher.power;
+        ball.launched = true;
+        launcher.charging = false;
+        launcher.power = 0;
+    }
+});
 
 // Lancer le jeu
 gameLoop();
