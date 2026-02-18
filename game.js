@@ -10,7 +10,7 @@ const H = canvas.height;  // 700
 
 // --- Constantes plateau ---
 const WALL_LEFT = 30;
-const WALL_TOP = 80;
+const WALL_TOP = 200;
 
 // --- Physique ---
 const GRAVITY = 0.2;
@@ -182,13 +182,13 @@ document.addEventListener('keyup', (e) => {
 // Disposition en triangle inversé + bumper MEGA spécial au centre
 const bumpers = [
     // Rangée du haut (2 bumpers)
-    { x: 100, y: 190, radius: 20, points: 100, glow: 0, special: false },
-    { x: 185, y: 170, radius: 20, points: 100, glow: 0, special: false },
+    { x: 100, y: 280, radius: 20, points: 100, glow: 0, special: false },
+    { x: 185, y: 260, radius: 20, points: 100, glow: 0, special: false },
     // Rangée du milieu (2 bumpers)
-    { x: 130, y: 290, radius: 20, points: 100, glow: 0, special: false },
-    { x: 240, y: 290, radius: 20, points: 100, glow: 0, special: false },
+    { x: 130, y: 360, radius: 20, points: 100, glow: 0, special: false },
+    { x: 240, y: 360, radius: 20, points: 100, glow: 0, special: false },
     // ⭐ MEGA bumper central — plus gros, x3 points, look doré
-    { x: 185, y: 380, radius: 32, points: 500, glow: 0, special: true },
+    { x: 185, y: 450, radius: 32, points: 500, glow: 0, special: true },
 ];
 
 // --- Collision bille / segment ---
