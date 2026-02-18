@@ -76,28 +76,62 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
+// On génère un arc arrondi en haut et une courbe lisse pour le virage du couloir
+
+// Génère des segments d'arc de cercle (cx, cy = centre, r = rayon, startAngle, endAngle en radians, nSegs segments)
+function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
+    const segs = [];
+    for (let i = 0; i < nSegs; i++) {
+        const a1 = startAngle + (endAngle - startAngle) * (i / nSegs);
+        const a2 = startAngle + (endAngle - startAngle) * ((i + 1) / nSegs);
+        segs.push({
+            x1: cx + Math.cos(a1) * r,
+            y1: cy + Math.sin(a1) * r,
+            x2: cx + Math.cos(a2) * r,
+            y2: cy + Math.sin(a2) * r
+        });
+    }
+    return segs;
+}
+
+// Arc arrondi en haut du plateau : demi-cercle de gauche à droite
+const arcTop = makeArc(
+    (WALL_LEFT + WALL_RIGHT) / 2,  // centre X
+    WALL_TOP + 5,                   // centre Y (juste sous le haut)
+    (WALL_RIGHT - WALL_LEFT) / 2,  // rayon
+    Math.PI,                        // de gauche (π)
+    0,                              // à droite (0)
+    12                              // 12 segments pour un arc bien lisse
+);
+
+// Courbe du virage en haut du couloir lanceur : quart de cercle
+const curveTop = makeArc(
+    WALL_RIGHT, WALL_TOP + 5,       // centre = coin haut droit du plateau
+    LANE_LEFT - WALL_RIGHT,          // rayon = largeur entre plateau et couloir
+    0,                               // de droite (0)
+    Math.PI / 2,                     // à bas (π/2)
+    8                                // 8 segments bien lisses
+);
+
 const walls = [
     // Mur gauche vertical
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
+    { x1: WALL_LEFT, y1: WALL_TOP + 5, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur droit vertical
-    { x1: WALL_RIGHT, y1: WALL_TOP + 20, x2: WALL_RIGHT, y2: 430 },
+    // Mur droit vertical (commence après la courbe)
+    { x1: WALL_RIGHT, y1: WALL_TOP + 5 + (LANE_LEFT - WALL_RIGHT), x2: WALL_RIGHT, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: WALL_RIGHT, y1: 430, x2: 265, y2: 620 },
-    // Arc du haut : segments formant un arc qui ferme le plateau
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: 100, y2: 62 },
-    { x1: 100, y1: 62, x2: 180, y2: 55 },
-    { x1: 180, y1: 55, x2: 260, y2: 58 },
-    { x1: 260, y1: 58, x2: WALL_RIGHT, y2: WALL_TOP },
-    // Couloir lanceur : mur intérieur
-    { x1: LANE_LEFT, y1: 120, x2: LANE_LEFT, y2: H },
+    // Arc arrondi en haut
+    ...arcTop,
+    // Courbe du couloir lanceur
+    ...curveTop,
+    // Couloir lanceur : mur intérieur vertical (commence après la courbe)
+    { x1: LANE_LEFT, y1: WALL_TOP + 5 + (LANE_LEFT - WALL_RIGHT), x2: LANE_LEFT, y2: H },
     // Couloir lanceur : mur extérieur droit
-    { x1: LANE_RIGHT, y1: 55, x2: LANE_RIGHT, y2: H },
-    // Courbe en haut du couloir : guide la bille vers la gauche dans le plateau
-    { x1: LANE_LEFT, y1: 120, x2: WALL_RIGHT, y2: WALL_TOP + 20 },
-    // Mur du haut côté lanceur (relie l'arc au couloir)
-    { x1: WALL_RIGHT, y1: WALL_TOP, x2: LANE_RIGHT, y2: 55 },
+    { x1: LANE_RIGHT, y1: WALL_TOP + 5, x2: LANE_RIGHT, y2: H },
+    // Raccord haut : de l'arc au couloir extérieur
+    { x1: WALL_RIGHT + (LANE_LEFT - WALL_RIGHT), y1: WALL_TOP + 5, x2: LANE_RIGHT, y2: WALL_TOP + 5 },
 ];
 
 // --- Flippers ---
@@ -362,53 +396,168 @@ function updateBall() {
 
 // ===================== DESSIN =====================
 
-function drawBackground() {
-    // Fond espace profond
-    const gradient = ctx.createRadialGradient(W / 2, H / 3, 50, W / 2, H / 2, H);
-    gradient.addColorStop(0, '#1a0a3e');
-    gradient.addColorStop(0.4, '#0d0d2b');
-    gradient.addColorStop(1, '#050510');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
+// Image de fond pré-rendue (générée une seule fois pour la performance)
+let bgCanvas = null;
 
-    // Étoiles animées
+function generateBackgroundImage() {
+    bgCanvas = document.createElement('canvas');
+    bgCanvas.width = W;
+    bgCanvas.height = H;
+    const bg = bgCanvas.getContext('2d');
+
+    // Fond principal : dégradé profond
+    const mainGrad = bg.createLinearGradient(0, 0, 0, H);
+    mainGrad.addColorStop(0, '#0c0028');
+    mainGrad.addColorStop(0.3, '#140038');
+    mainGrad.addColorStop(0.7, '#0a0020');
+    mainGrad.addColorStop(1, '#050010');
+    bg.fillStyle = mainGrad;
+    bg.fillRect(0, 0, W, H);
+
+    // Étoiles fixes
+    for (let i = 0; i < 120; i++) {
+        const sx = Math.random() * W;
+        const sy = Math.random() * H;
+        const sr = Math.random() * 1.5 + 0.3;
+        bg.globalAlpha = Math.random() * 0.6 + 0.1;
+        bg.fillStyle = ['#ffffff', '#aaccff', '#ffccdd'][Math.floor(Math.random() * 3)];
+        bg.beginPath();
+        bg.arc(sx, sy, sr, 0, Math.PI * 2);
+        bg.fill();
+    }
+    bg.globalAlpha = 1;
+
+    // Grande nébuleuse rose-violet au centre
+    bg.globalAlpha = 0.08;
+    const neb1 = bg.createRadialGradient(180, 300, 20, 180, 300, 200);
+    neb1.addColorStop(0, '#ff44aa');
+    neb1.addColorStop(0.5, '#8800cc');
+    neb1.addColorStop(1, 'transparent');
+    bg.fillStyle = neb1;
+    bg.fillRect(0, 100, W, 400);
+
+    // Nébuleuse cyan en bas
+    const neb2 = bg.createRadialGradient(280, 500, 10, 280, 500, 150);
+    neb2.addColorStop(0, '#00ccff');
+    neb2.addColorStop(0.6, '#0044aa');
+    neb2.addColorStop(1, 'transparent');
+    bg.fillStyle = neb2;
+    bg.fillRect(100, 350, 300, 300);
+    bg.globalAlpha = 1;
+
+    // Dessin décoratif : grande fusée / vaisseau stylisé au centre
+    bg.save();
+    bg.translate(180, 420);
+    bg.globalAlpha = 0.07;
+    // Corps de la fusée
+    bg.fillStyle = '#ff6ec7';
+    bg.beginPath();
+    bg.moveTo(0, -80);
+    bg.lineTo(20, -40);
+    bg.lineTo(20, 40);
+    bg.lineTo(30, 60);
+    bg.lineTo(-30, 60);
+    bg.lineTo(-20, 40);
+    bg.lineTo(-20, -40);
+    bg.closePath();
+    bg.fill();
+    // Hublot
+    bg.fillStyle = '#00ffff';
+    bg.beginPath();
+    bg.arc(0, -10, 10, 0, Math.PI * 2);
+    bg.fill();
+    // Flammes
+    bg.fillStyle = '#ffaa00';
+    bg.beginPath();
+    bg.moveTo(-15, 60);
+    bg.lineTo(0, 110);
+    bg.lineTo(15, 60);
+    bg.closePath();
+    bg.fill();
+    bg.fillStyle = '#ff4400';
+    bg.beginPath();
+    bg.moveTo(-8, 60);
+    bg.lineTo(0, 95);
+    bg.lineTo(8, 60);
+    bg.closePath();
+    bg.fill();
+    bg.restore();
+
+    // Éclairs décoratifs
+    bg.globalAlpha = 0.05;
+    bg.strokeStyle = '#00ffff';
+    bg.lineWidth = 2;
+    bg.beginPath();
+    bg.moveTo(60, 150);
+    bg.lineTo(80, 190);
+    bg.lineTo(65, 190);
+    bg.lineTo(90, 240);
+    bg.stroke();
+
+    bg.strokeStyle = '#ff6ec7';
+    bg.beginPath();
+    bg.moveTo(290, 180);
+    bg.lineTo(310, 220);
+    bg.lineTo(295, 220);
+    bg.lineTo(320, 270);
+    bg.stroke();
+    bg.globalAlpha = 1;
+
+    // Anneaux décoratifs
+    bg.globalAlpha = 0.04;
+    bg.strokeStyle = '#ff6ec7';
+    bg.lineWidth = 1;
+    for (let r = 40; r < 200; r += 30) {
+        bg.beginPath();
+        bg.arc(180, 300, r, 0, Math.PI * 2);
+        bg.stroke();
+    }
+    bg.globalAlpha = 1;
+
+    // Textes décoratifs dans le plateau
+    bg.globalAlpha = 0.06;
+    bg.fillStyle = '#ff6ec7';
+    bg.font = 'bold 60px monospace';
+    bg.textAlign = 'center';
+    bg.fillText('SPACE', 180, 520);
+    bg.font = 'bold 40px monospace';
+    bg.fillStyle = '#00ffff';
+    bg.fillText('PINBALL', 180, 560);
+    bg.globalAlpha = 1;
+
+    // Surface de jeu (zone légèrement plus claire)
+    bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
+    bg.beginPath();
+    bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
+    bg.lineTo(WALL_RIGHT - 5, WALL_TOP + 5);
+    bg.lineTo(WALL_RIGHT - 5, 430);
+    bg.lineTo(265, 620);
+    bg.lineTo(110, 620);
+    bg.lineTo(WALL_LEFT + 5, 430);
+    bg.closePath();
+    bg.fill();
+}
+
+// Appel au démarrage
+generateBackgroundImage();
+
+function drawBackground() {
+    // Fond pré-rendu
+    ctx.drawImage(bgCanvas, 0, 0);
+
+    // Étoiles scintillantes (animées par-dessus le fond fixe)
     const time = Date.now() / 1000;
     for (const star of stars) {
-        const twinkle = 0.4 + 0.6 * Math.sin(time * star.speed * 100 + star.x);
-        ctx.globalAlpha = star.brightness * twinkle;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
+        const twinkle = 0.3 + 0.7 * Math.sin(time * star.speed * 80 + star.x * 10);
+        if (twinkle > 0.6) {
+            ctx.globalAlpha = (twinkle - 0.6) * 2.5 * star.brightness;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
     ctx.globalAlpha = 1;
-
-    // Nébuleuse décorative (tache de couleur subtile)
-    ctx.globalAlpha = 0.06;
-    const neb1 = ctx.createRadialGradient(120, 250, 10, 120, 250, 120);
-    neb1.addColorStop(0, '#ff6ec7');
-    neb1.addColorStop(1, 'transparent');
-    ctx.fillStyle = neb1;
-    ctx.fillRect(0, 130, 250, 250);
-
-    const neb2 = ctx.createRadialGradient(280, 400, 10, 280, 400, 100);
-    neb2.addColorStop(0, '#00ffff');
-    neb2.addColorStop(1, 'transparent');
-    ctx.fillStyle = neb2;
-    ctx.fillRect(180, 300, 200, 200);
-    ctx.globalAlpha = 1;
-
-    // Surface de jeu intérieure (subtile)
-    ctx.fillStyle = 'rgba(15, 15, 50, 0.4)';
-    ctx.beginPath();
-    ctx.moveTo(WALL_LEFT + 3, WALL_TOP);
-    ctx.lineTo(WALL_RIGHT - 3, WALL_TOP);
-    ctx.lineTo(WALL_RIGHT - 3, 430);
-    ctx.lineTo(265, 620);
-    ctx.lineTo(110, 620);
-    ctx.lineTo(WALL_LEFT + 3, 430);
-    ctx.closePath();
-    ctx.fill();
 }
 
 function drawWalls() {
