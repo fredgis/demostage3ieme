@@ -107,7 +107,7 @@ const walls = [
 
 // --- Flippers ---
 const FLIPPER_LENGTH = 70;
-const FLIPPER_WIDTH = 14;
+const FLIPPER_WIDTH = 18;
 const FLIPPER_SPEED = 0.18;
 const FLIPPER_REST_ANGLE = 0.45;
 const FLIPPER_UP_ANGLE = -0.55;
@@ -256,12 +256,13 @@ function collideFlippers() {
             const nx = dx / dist;
             const ny = dy / dist;
 
-            ball.x = closest.x + nx * (minDist + 1);
-            ball.y = closest.y + ny * (minDist + 1);
+            // Repousser la bille hors du flipper
+            ball.x = closest.x + nx * (minDist + 2);
+            ball.y = closest.y + ny * (minDist + 2);
 
             const angVel = flipper.angularVelocity || 0;
             const contactDist = Math.sqrt((closest.x - flipper.x) ** 2 + (closest.y - flipper.y) ** 2);
-            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.0, 7);
+            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.5, 12);
 
             const dot = ball.vx * nx + ball.vy * ny;
             ball.vx = (ball.vx - 2 * dot * nx) * BOUNCE;
@@ -271,7 +272,7 @@ function collideFlippers() {
             if (Math.abs(angVel) > 0.01) {
                 ball.vy -= hitStrength;
                 const dir = flipper.side === 'left' ? 1 : -1;
-                ball.vx += dir * hitStrength * 0.3;
+                ball.vx += dir * hitStrength * 0.4;
             }
 
             // Clamper la vitesse immédiatement après le coup
@@ -385,9 +386,9 @@ function updateBall() {
     }
 
     // Sub-stepping : découper le mouvement en petits pas
-    // pour que la bille ne traverse jamais un mur
-    const steps = Math.ceil(speed / ball.radius);
-    const subSteps = Math.max(1, steps);
+    // pour que la bille ne traverse jamais un mur ou un flipper
+    const steps = Math.ceil(speed / (ball.radius * 0.5));
+    const subSteps = Math.max(4, steps);
     for (let i = 0; i < subSteps; i++) {
         ball.x += ball.vx / subSteps;
         ball.y += ball.vy / subSteps;
