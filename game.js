@@ -198,10 +198,9 @@ document.addEventListener('keyup', (e) => {
 // --- Bumpers ---
 // Disposition en triangle inversé + bumper MEGA spécial au centre
 const bumpers = [
-    // Rangée du haut (3 bumpers)
+    // Rangée du haut (2 bumpers)
     { x: 100, y: 190, radius: 20, points: 100, glow: 0, special: false },
     { x: 185, y: 170, radius: 20, points: 100, glow: 0, special: false },
-    { x: 270, y: 190, radius: 20, points: 100, glow: 0, special: false },
     // Rangée du milieu (2 bumpers)
     { x: 130, y: 290, radius: 20, points: 100, glow: 0, special: false },
     { x: 240, y: 290, radius: 20, points: 100, glow: 0, special: false },
