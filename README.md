@@ -14,6 +14,12 @@ Le but : marquer un max de points en touchant les bumpers ! Tu as 3 billes.
 
 Ouvre le fichier `index.html` dans ton navigateur. C'est tout !
 
+Ou scanne ce QR code pour jouer en ligne :
+
+![QR Code du jeu](qrcode.png)
+
+👉 **https://fredgis.github.io/demostage3ieme/**
+
 ## 🧑‍💻 Ce qu'on a appris
 
 - **La boucle de jeu** : le jeu se redessine 60 fois par seconde grâce à `requestAnimationFrame`
