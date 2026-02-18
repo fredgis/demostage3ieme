@@ -147,6 +147,8 @@ const walls = [
     { x1: LANE_X_RIGHT, y1: ARC_CENTER_Y, x2: LANE_X_RIGHT, y2: H },
     // Couloir lanceur : mur intérieur — juste la partie basse (en dessous de la rampe)
     { x1: LANE_X_LEFT, y1: RAMP_BOT_Y, x2: LANE_X_LEFT, y2: H },
+    // Mur horizontal qui ferme le gap entre la rampe et le couloir à y=130
+    { x1: RAMP_BOT_X, y1: RAMP_BOT_Y, x2: LANE_X_LEFT, y2: RAMP_BOT_Y },
 ];
 
 // --- Flippers ---
