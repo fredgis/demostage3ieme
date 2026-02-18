@@ -111,22 +111,37 @@ const LANE_OUTER_X = 370;
 // Le mur droit du plateau commence à y=160 (ouverture au-dessus)
 const RIGHT_WALL_START = 160;
 
+// Arc de cercle en haut à droite : quart de cercle qui relie
+// le mur du haut (horizontal) au mur extérieur du couloir (vertical).
+// Centre = (LANE_OUTER_X - R, WALL_TOP + R), rayon R = 40
+const CORNER_R = 40;
+const CORNER_CX = LANE_OUTER_X - CORNER_R;  // 330
+const CORNER_CY = WALL_TOP + CORNER_R;       // 120
+const cornerArc = makeArc(
+    CORNER_CX, CORNER_CY,
+    CORNER_R,
+    -Math.PI / 2,   // haut (rejoint le mur du haut à y=80)
+    0,               // droite (rejoint le mur extérieur à x=370)
+    10
+);
+
 const walls = [
     // Mur gauche vertical
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur du haut (couvre TOUT de gauche jusqu'au mur extérieur du couloir)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_OUTER_X, y2: WALL_TOP },
+    // Mur du haut (de gauche jusqu'au début de l'arc arrondi)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: CORNER_CX, y2: WALL_TOP },
+    // Arc arrondi en haut à droite
+    ...cornerArc,
     // Mur droit du plateau (commence à y=160 — au dessus c'est ouvert !)
     { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
-    // Couloir lanceur : mur extérieur droit (du haut vers le bas)
-    { x1: LANE_OUTER_X, y1: WALL_TOP, x2: LANE_OUTER_X, y2: H },
+    // Couloir lanceur : mur extérieur droit (du bas de l'arc vers le bas)
+    { x1: LANE_OUTER_X, y1: CORNER_CY, x2: LANE_OUTER_X, y2: H },
     // Couloir lanceur : mur intérieur (seulement la partie basse, sous l'ouverture)
     { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: H },
-    // Note : entre y=80 et y=160 à x=340, pas de mur → la bille passe du couloir au plateau
 ];
 
 // --- Flippers ---
@@ -520,11 +535,12 @@ function generateBackgroundImage() {
     bg.fillText('PINBALL', 180, 560);
     bg.globalAlpha = 1;
 
-    // Surface de jeu (zone légèrement plus claire)
+    // Surface de jeu (zone légèrement plus claire) avec coin arrondi
     bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
     bg.beginPath();
     bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
-    bg.lineTo(LANE_INNER_X - 5, WALL_TOP + 5);
+    bg.lineTo(CORNER_CX, WALL_TOP + 5);
+    bg.arc(CORNER_CX, CORNER_CY, CORNER_R - 5, -Math.PI / 2, 0);
     bg.lineTo(LANE_INNER_X - 5, 430);
     bg.lineTo(265, 620);
     bg.lineTo(110, 620);
