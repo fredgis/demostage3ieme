@@ -95,18 +95,17 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
 const LANE_INNER_X = 340;
 const LANE_OUTER_X = 370;
 
-// Arc de cercle en haut à droite: quart de cercle qui relie
-// le mur du haut (horizontal) au mur extérieur du couloir (vertical).
-// Centre = (LANE_OUTER_X - R, WALL_TOP + R), rayon R = 40
-const CORNER_R = 40;
-const CORNER_CX = LANE_OUTER_X - CORNER_R;  // 330
-const CORNER_CY = WALL_TOP + CORNER_R;       // 120
+// Arc de cercle en haut à droite : quart de cercle dans le couloir
+// Rayon = largeur du couloir (30px) pour que l'arc reste dans le couloir
+const CORNER_R = LANE_OUTER_X - LANE_INNER_X;  // 30
+const CORNER_CX = LANE_OUTER_X - CORNER_R;      // 340
+const CORNER_CY = WALL_TOP + CORNER_R;           // 110
 const cornerArc = makeArc(
     CORNER_CX, CORNER_CY,
     CORNER_R,
-    -Math.PI / 2,   // haut (rejoint le mur du haut à y=80)
-    0,               // droite (rejoint le mur extérieur à x=370)
-    10
+    -Math.PI / 2,   // haut : point (340, 80) rejoint le mur du haut
+    0,               // droite : point (370, 110) rejoint le mur extérieur
+    8
 );
 
 const walls = [
@@ -114,21 +113,18 @@ const walls = [
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur du haut (de gauche jusqu'au début de l'arc arrondi)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: CORNER_CX, y2: WALL_TOP },
-    // Arc arrondi en haut à droite
+    // Mur du haut (de gauche jusqu'au début de l'arc = x=340)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_INNER_X, y2: WALL_TOP },
+    // Arc arrondi en haut à droite (dans le couloir)
     ...cornerArc,
-    // Mur droit du plateau (commence sous l'arc pour laisser la bille entrer)
+    // Mur droit du plateau (commence sous l'arc)
     { x1: LANE_INNER_X, y1: CORNER_CY, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
-    // Couloir lanceur : mur extérieur droit
+    // Couloir lanceur : mur extérieur droit (du bas de l'arc vers le bas)
     { x1: LANE_OUTER_X, y1: CORNER_CY, x2: LANE_OUTER_X, y2: H },
     // Couloir lanceur : mur intérieur (sous le plateau)
     { x1: LANE_INNER_X, y1: 430, x2: LANE_INNER_X, y2: H },
-    // Guides anti-blocage entre les flippers
-    { x1: 155, y1: 640, x2: 182, y2: 660 },
-    { x1: 210, y1: 640, x2: 183, y2: 660 },
 ];
 
 // --- Flippers ---
