@@ -10,10 +10,7 @@ const H = canvas.height;  // 700
 
 // --- Constantes plateau ---
 const WALL_LEFT = 30;
-const WALL_RIGHT = 330;
 const WALL_TOP = 80;
-const LANE_LEFT = 340;
-const LANE_RIGHT = 370;
 
 // --- Physique ---
 const GRAVITY = 0.2;
@@ -53,7 +50,7 @@ const ball = {
 const launcher = {
     x: 355, y: 630,
     power: 0,
-    maxPower: 16,
+    maxPower: 14,
     charging: false
 };
 
@@ -76,19 +73,9 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
-// Architecture simple : le couloir est ouvert côté plateau en haut.
-// Le mur du haut couvre tout (plateau + couloir) donc la bille ne sort jamais.
-// La bille monte dans le couloir, tape le mur du haut, et retombe dans le plateau
-// car il n'y a pas de mur droit entre y=80 et y=160.
-//
-//     mur du haut (couvre tout)
-//     ────────────────────────────
-//     │         plateau     │    │
-//     │                    pas   │
-//     │                    de    │ couloir
-//     │                    mur   │
-//     │                     │    │
-//     │                     │    │
+// La bille monte dans le couloir droit, tape l'arc arrondi en haut,
+// redescend et glisse sur la rampe diagonale vers le plateau.
+// Le mur droit du plateau est fermé de haut en bas.
 
 function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     const segs = [];
@@ -108,9 +95,7 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
 const LANE_INNER_X = 340;
 const LANE_OUTER_X = 370;
 
-// Le mur droit du plateau est maintenant fermé de haut en bas
-
-// Arc de cercle en haut à droite : quart de cercle qui relie
+// Arc de cercle en haut à droite: quart de cercle qui relie
 // le mur du haut (horizontal) au mur extérieur du couloir (vertical).
 // Centre = (LANE_OUTER_X - R, WALL_TOP + R), rayon R = 40
 const CORNER_R = 40;
@@ -132,20 +117,18 @@ const walls = [
     // Mur du haut (s'arrête avant le couloir pour laisser passer la bille)
     { x1: WALL_LEFT, y1: WALL_TOP, x2: 290, y2: WALL_TOP },
     // Rampe d'entrée : guide la bille du couloir vers le plateau
-    // La bille arrive du haut du couloir, tape l'arc, descend,
-    // et cette rampe diagonale la renvoie vers la gauche sur le plateau
     { x1: 290, y1: WALL_TOP, x2: LANE_INNER_X, y2: WALL_TOP + 50 },
     // Arc arrondi en haut à droite
     ...cornerArc,
-    // Mur droit du plateau (FERMÉ de haut en bas — plus d'ouverture !)
+    // Mur droit du plateau (de la rampe jusqu'au diagonal)
     { x1: LANE_INNER_X, y1: WALL_TOP + 50, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
-    // Couloir lanceur : mur extérieur droit (du bas de l'arc vers le bas)
+    // Couloir lanceur : mur extérieur droit
     { x1: LANE_OUTER_X, y1: CORNER_CY, x2: LANE_OUTER_X, y2: H },
-    // Couloir lanceur : mur intérieur (du bas de la rampe vers le bas)
-    { x1: LANE_INNER_X, y1: WALL_TOP + 50, x2: LANE_INNER_X, y2: H },
-    // Guides anti-blocage entre les flippers (petit V qui oriente vers le drain)
+    // Couloir lanceur : mur intérieur (seulement SOUS le plateau)
+    { x1: LANE_INNER_X, y1: 430, x2: LANE_INNER_X, y2: H },
+    // Guides anti-blocage entre les flippers
     { x1: 155, y1: 640, x2: 182, y2: 660 },
     { x1: 210, y1: 640, x2: 183, y2: 660 },
 ];
@@ -350,6 +333,13 @@ function collideBumpers() {
             const reboundSpeed = Math.max(speed, 4) * (bumper.special ? 1.2 : 1.1);
             ball.vx = nx * reboundSpeed;
             ball.vy = ny * reboundSpeed;
+
+            // Clamper après rebond bumper
+            const bspd = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+            if (bspd > MAX_SPEED) {
+                ball.vx = (ball.vx / bspd) * MAX_SPEED;
+                ball.vy = (ball.vy / bspd) * MAX_SPEED;
+            }
 
             score += bumper.points;
             bumper.glow = 1.0;
