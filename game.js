@@ -108,8 +108,7 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
 const LANE_INNER_X = 340;
 const LANE_OUTER_X = 370;
 
-// Le mur droit du plateau commence à y=160 (ouverture au-dessus)
-const RIGHT_WALL_START = 160;
+// Le mur droit du plateau est maintenant fermé de haut en bas
 
 // Arc de cercle en haut à droite : quart de cercle qui relie
 // le mur du haut (horizontal) au mur extérieur du couloir (vertical).
@@ -130,18 +129,22 @@ const walls = [
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur du haut (de gauche jusqu'au début de l'arc arrondi)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: CORNER_CX, y2: WALL_TOP },
+    // Mur du haut (s'arrête avant le couloir pour laisser passer la bille)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: 290, y2: WALL_TOP },
+    // Rampe d'entrée : guide la bille du couloir vers le plateau
+    // La bille arrive du haut du couloir, tape l'arc, descend,
+    // et cette rampe diagonale la renvoie vers la gauche sur le plateau
+    { x1: 290, y1: WALL_TOP, x2: LANE_INNER_X, y2: WALL_TOP + 50 },
     // Arc arrondi en haut à droite
     ...cornerArc,
-    // Mur droit du plateau (commence à y=160 — au dessus c'est ouvert !)
-    { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: 430 },
+    // Mur droit du plateau (FERMÉ de haut en bas — plus d'ouverture !)
+    { x1: LANE_INNER_X, y1: WALL_TOP + 50, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
     { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
     // Couloir lanceur : mur extérieur droit (du bas de l'arc vers le bas)
     { x1: LANE_OUTER_X, y1: CORNER_CY, x2: LANE_OUTER_X, y2: H },
-    // Couloir lanceur : mur intérieur (seulement la partie basse, sous l'ouverture)
-    { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: H },
+    // Couloir lanceur : mur intérieur (du bas de la rampe vers le bas)
+    { x1: LANE_INNER_X, y1: WALL_TOP + 50, x2: LANE_INNER_X, y2: H },
     // Guides anti-blocage entre les flippers (petit V qui oriente vers le drain)
     { x1: 155, y1: 640, x2: 182, y2: 660 },
     { x1: 210, y1: 640, x2: 183, y2: 660 },
@@ -579,12 +582,12 @@ function generateBackgroundImage() {
     bg.fillText('PINBALL', 180, 560);
     bg.globalAlpha = 1;
 
-    // Surface de jeu (zone légèrement plus claire) avec coin arrondi
+    // Surface de jeu (zone légèrement plus claire) avec rampe d'entrée
     bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
     bg.beginPath();
     bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
-    bg.lineTo(CORNER_CX, WALL_TOP + 5);
-    bg.arc(CORNER_CX, CORNER_CY, CORNER_R - 5, -Math.PI / 2, 0);
+    bg.lineTo(290, WALL_TOP + 5);
+    bg.lineTo(LANE_INNER_X - 5, WALL_TOP + 55);
     bg.lineTo(LANE_INNER_X - 5, 430);
     bg.lineTo(265, 620);
     bg.lineTo(110, 620);
