@@ -305,7 +305,7 @@ function collideFlippers() {
 
             const angVel = flipper.angularVelocity || 0;
             const contactDist = Math.sqrt((closest.x - flipper.x) ** 2 + (closest.y - flipper.y) ** 2);
-            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 0.8, 5);
+            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.0, 7);
 
             const dot = ball.vx * nx + ball.vy * ny;
             ball.vx = (ball.vx - 2 * dot * nx) * BOUNCE;
@@ -406,7 +406,7 @@ function updateLauncher() {
 }
 
 // --- Mise à jour de la bille ---
-const MAX_SPEED = 10;  // Vitesse max pour éviter de traverser les murs
+const MAX_SPEED = 14;  // Vitesse max pour éviter de traverser les murs
 
 function updateBall() {
     if (!ball.launched) return;
