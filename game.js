@@ -1,5 +1,5 @@
 // ============================================
-// 🎰 FLIPPER WEB — Phase 1 : Squelette + Plateau + Bille
+// 🎰 FLIPPER WEB — Phase 2 : Avec Flippers !
 // ============================================
 
 const canvas = document.getElementById('pinball');
@@ -25,22 +25,44 @@ const ball = {
 };
 
 // --- Murs du plateau ---
-// Le plateau a une forme de trapèze : plus étroit en bas pour guider vers les flippers
 const walls = [
-    // Mur gauche haut (vertical)
     { x1: 30, y1: 50, x2: 30, y2: 400 },
-    // Mur gauche bas (diagonal vers le centre)
     { x1: 30, y1: 400, x2: 80, y2: 600 },
-    // Mur droit haut (vertical) — laisse un couloir à droite pour le lanceur
     { x1: 340, y1: 50, x2: 340, y2: 400 },
-    // Mur droit bas (diagonal vers le centre)
     { x1: 340, y1: 400, x2: 290, y2: 600 },
-    // Mur du haut
     { x1: 30, y1: 50, x2: 340, y2: 50 },
-    // Couloir du lanceur — mur intérieur
     { x1: 340, y1: 50, x2: 370, y2: 50 },
     { x1: 370, y1: 50, x2: 370, y2: 650 },
 ];
+
+// --- Flippers ---
+const FLIPPER_LENGTH = 70;
+const FLIPPER_WIDTH = 12;
+const FLIPPER_SPEED = 0.15;
+const FLIPPER_REST_ANGLE = 0.4;    // angle de repos (radians, vers le bas)
+const FLIPPER_UP_ANGLE = -0.5;     // angle quand activé (vers le haut)
+
+const flippers = [
+    {
+        x: 120, y: 620,          // point de pivot
+        angle: FLIPPER_REST_ANGLE,
+        targetAngle: FLIPPER_REST_ANGLE,
+        side: 'left',
+        direction: 1              // 1 = s'étend vers la droite
+    },
+    {
+        x: 250, y: 620,
+        angle: -FLIPPER_REST_ANGLE,
+        targetAngle: -FLIPPER_REST_ANGLE,
+        side: 'right',
+        direction: -1             // -1 = s'étend vers la gauche
+    }
+];
+
+// Contrôles clavier
+const keys = {};
+document.addEventListener('keydown', (e) => { keys[e.key] = true; });
+document.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
 // --- Collision bille / segment ---
 function closestPointOnSegment(px, py, x1, y1, x2, y2) {
@@ -83,6 +105,68 @@ function collideWalls() {
     }
 }
 
+// --- Flippers : mise à jour ---
+function updateFlippers() {
+    // Flipper gauche : touche ArrowLeft ou a/q
+    if (keys['ArrowLeft'] || keys['a'] || keys['q']) {
+        flippers[0].targetAngle = FLIPPER_UP_ANGLE;
+    } else {
+        flippers[0].targetAngle = FLIPPER_REST_ANGLE;
+    }
+
+    // Flipper droit : touche ArrowRight ou p
+    if (keys['ArrowRight'] || keys['d'] || keys['p']) {
+        flippers[1].targetAngle = -FLIPPER_UP_ANGLE;
+    } else {
+        flippers[1].targetAngle = -FLIPPER_REST_ANGLE;
+    }
+
+    for (const flipper of flippers) {
+        const diff = flipper.targetAngle - flipper.angle;
+        flipper.angularVelocity = diff * FLIPPER_SPEED * 20;
+        flipper.angle += diff * FLIPPER_SPEED * 5;
+    }
+}
+
+// --- Collision bille / flipper ---
+function getFlipperEnd(flipper) {
+    return {
+        x: flipper.x + Math.cos(flipper.angle) * FLIPPER_LENGTH * flipper.direction,
+        y: flipper.y + Math.sin(flipper.angle) * FLIPPER_LENGTH
+    };
+}
+
+function collideFlippers() {
+    for (const flipper of flippers) {
+        const end = getFlipperEnd(flipper);
+        const closest = closestPointOnSegment(ball.x, ball.y, flipper.x, flipper.y, end.x, end.y);
+        const dx = ball.x - closest.x;
+        const dy = ball.y - closest.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = ball.radius + FLIPPER_WIDTH / 2;
+
+        if (dist < minDist) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            // Repousser la bille
+            ball.x = closest.x + nx * minDist;
+            ball.y = closest.y + ny * minDist;
+
+            // Vitesse du flipper au point de contact (effet de frappe)
+            const angVel = flipper.angularVelocity || 0;
+            const contactDist = Math.sqrt((closest.x - flipper.x) ** 2 + (closest.y - flipper.y) ** 2);
+            const flipperHitVx = -Math.sin(flipper.angle) * angVel * contactDist * 0.3;
+            const flipperHitVy = Math.cos(flipper.angle) * angVel * contactDist * 0.3;
+
+            // Réflexion + impulsion du flipper
+            const dot = ball.vx * nx + ball.vy * ny;
+            ball.vx = (ball.vx - 2 * dot * nx) * BOUNCE + flipperHitVx;
+            ball.vy = (ball.vy - 2 * dot * ny) * BOUNCE + flipperHitVy;
+        }
+    }
+}
+
 // --- Mise à jour de la bille ---
 function updateBall() {
     ball.vy += GRAVITY;
@@ -91,6 +175,7 @@ function updateBall() {
     ball.x += ball.vx;
     ball.y += ball.vy;
     collideWalls();
+    collideFlippers();
 }
 
 // --- Dessin ---
@@ -118,7 +203,6 @@ function drawWalls() {
 }
 
 function drawBall() {
-    // Glow effect
     ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = 15;
     ctx.fillStyle = ball.color;
@@ -127,18 +211,43 @@ function drawBall() {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Reflet
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     ctx.beginPath();
     ctx.arc(ball.x - 2, ball.y - 2, ball.radius * 0.3, 0, Math.PI * 2);
     ctx.fill();
 }
 
+function drawFlippers() {
+    for (const flipper of flippers) {
+        const end = getFlipperEnd(flipper);
+        ctx.save();
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = FLIPPER_WIDTH;
+        ctx.lineCap = 'round';
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.moveTo(flipper.x, flipper.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Pivot
+        ctx.fillStyle = '#ff6ec7';
+        ctx.beginPath();
+        ctx.arc(flipper.x, flipper.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
 // --- Game Loop ---
 function gameLoop() {
     drawBackground();
     drawWalls();
+    updateFlippers();
     updateBall();
+    drawFlippers();
     drawBall();
     requestAnimationFrame(gameLoop);
 }
