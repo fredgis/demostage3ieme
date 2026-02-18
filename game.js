@@ -43,7 +43,7 @@ for (let i = 0; i < 80; i++) {
 
 // --- La bille ---
 const ball = {
-    x: 360, y: 600,
+    x: 355, y: 600,
     vx: 0, vy: 0,
     radius: 8,
     launched: false
@@ -51,14 +51,14 @@ const ball = {
 
 // --- Lanceur ---
 const launcher = {
-    x: 360, y: 630,
+    x: 355, y: 630,
     power: 0,
     maxPower: 16,
     charging: false
 };
 
 function resetBall() {
-    ball.x = 360;
+    ball.x = 355;
     ball.y = 600;
     ball.vx = 0;
     ball.vy = 0;
@@ -76,16 +76,19 @@ function startGame() {
 }
 
 // --- Murs du plateau ---
-// Le couloir lanceur est à droite. La bille monte, fait un U-turn,
-// et redescend par un petit passage diagonal qui l'amène dans le plateau.
-// Le mur du haut est FERMÉ pour empêcher la bille de sortir.
+// Architecture simple : le couloir est ouvert côté plateau en haut.
+// Le mur du haut couvre tout (plateau + couloir) donc la bille ne sort jamais.
+// La bille monte dans le couloir, tape le mur du haut, et retombe dans le plateau
+// car il n'y a pas de mur droit entre y=80 et y=160.
 //
-//   mur gauche  mur du haut (fermé)     mur ext.
-//   │           ──────────────────╮╭──╮  │
-//   │                         rampe│  │  │
-//   │           plateau        ╱  │  │  │
-//   │                         ╱   │  │  │ couloir
-//   │                             │  │  │
+//     mur du haut (couvre tout)
+//     ────────────────────────────
+//     │         plateau     │    │
+//     │                    pas   │
+//     │                    de    │ couloir
+//     │                    mur   │
+//     │                     │    │
+//     │                     │    │
 
 function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     const segs = [];
@@ -102,53 +105,28 @@ function makeArc(cx, cy, r, startAngle, endAngle, nSegs) {
     return segs;
 }
 
-// Couloir lanceur
-const LANE_X_LEFT = 345;
-const LANE_X_RIGHT = 375;
-const LANE_WIDTH = LANE_X_RIGHT - LANE_X_LEFT;
+const LANE_INNER_X = 340;
+const LANE_OUTER_X = 370;
 
-// Arc U-turn en haut du couloir
-const ARC_CENTER_X = (LANE_X_LEFT + LANE_X_RIGHT) / 2;
-const ARC_CENTER_Y = 50;
-const ARC_RADIUS = LANE_WIDTH / 2;
-
-const uturnArc = makeArc(
-    ARC_CENTER_X, ARC_CENTER_Y,
-    ARC_RADIUS,
-    0, -Math.PI, 10
-);
-
-// Rampe d'entrée : la bille sort du couloir par le côté gauche du U-turn (x=345, y=50)
-// et descend en diagonale vers le plateau (x=300, y=130).
-// En dessous de la rampe, le mur droit du plateau est vertical.
-const RAMP_TOP_X = LANE_X_LEFT;
-const RAMP_TOP_Y = ARC_CENTER_Y;    // 50
-const RAMP_BOT_X = 300;
-const RAMP_BOT_Y = 130;
+// Le mur droit du plateau commence à y=160 (ouverture au-dessus)
+const RIGHT_WALL_START = 160;
 
 const walls = [
     // Mur gauche vertical
     { x1: WALL_LEFT, y1: WALL_TOP, x2: WALL_LEFT, y2: 430 },
     // Mur gauche diagonal → vers flipper gauche
     { x1: WALL_LEFT, y1: 430, x2: 100, y2: 620 },
-    // Mur du haut (FERMÉ : va du mur gauche jusqu'au couloir)
-    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_X_LEFT, y2: WALL_TOP },
-    // Petit mur vertical qui ferme entre le haut et la rampe
-    { x1: LANE_X_LEFT, y1: WALL_TOP, x2: LANE_X_LEFT, y2: RAMP_TOP_Y },
-    // Rampe diagonale (guide la bille du couloir vers le plateau)
-    { x1: RAMP_TOP_X, y1: RAMP_TOP_Y, x2: RAMP_BOT_X, y2: RAMP_BOT_Y },
-    // Mur droit du plateau (vertical, en dessous de la rampe)
-    { x1: RAMP_BOT_X, y1: RAMP_BOT_Y, x2: RAMP_BOT_X, y2: 430 },
+    // Mur du haut (couvre TOUT de gauche jusqu'au mur extérieur du couloir)
+    { x1: WALL_LEFT, y1: WALL_TOP, x2: LANE_OUTER_X, y2: WALL_TOP },
+    // Mur droit du plateau (commence à y=160 — au dessus c'est ouvert !)
+    { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: 430 },
     // Mur droit diagonal → vers flipper droit
-    { x1: RAMP_BOT_X, y1: 430, x2: 265, y2: 620 },
-    // Arc U-turn en haut du couloir
-    ...uturnArc,
-    // Couloir lanceur : mur extérieur droit
-    { x1: LANE_X_RIGHT, y1: ARC_CENTER_Y, x2: LANE_X_RIGHT, y2: H },
-    // Couloir lanceur : mur intérieur — juste la partie basse (en dessous de la rampe)
-    { x1: LANE_X_LEFT, y1: RAMP_BOT_Y, x2: LANE_X_LEFT, y2: H },
-    // Mur horizontal qui ferme le gap entre la rampe et le couloir à y=130
-    { x1: RAMP_BOT_X, y1: RAMP_BOT_Y, x2: LANE_X_LEFT, y2: RAMP_BOT_Y },
+    { x1: LANE_INNER_X, y1: 430, x2: 265, y2: 620 },
+    // Couloir lanceur : mur extérieur droit (du haut vers le bas)
+    { x1: LANE_OUTER_X, y1: WALL_TOP, x2: LANE_OUTER_X, y2: H },
+    // Couloir lanceur : mur intérieur (seulement la partie basse, sous l'ouverture)
+    { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: H },
+    // Note : entre y=80 et y=160 à x=340, pas de mur → la bille passe du couloir au plateau
 ];
 
 // --- Flippers ---
@@ -546,8 +524,8 @@ function generateBackgroundImage() {
     bg.fillStyle = 'rgba(20, 10, 50, 0.3)';
     bg.beginPath();
     bg.moveTo(WALL_LEFT + 5, WALL_TOP + 5);
-    bg.lineTo(RAMP_BOT_X - 5, WALL_TOP + 5);
-    bg.lineTo(RAMP_BOT_X - 5, 430);
+    bg.lineTo(LANE_INNER_X - 5, WALL_TOP + 5);
+    bg.lineTo(LANE_INNER_X - 5, 430);
     bg.lineTo(265, 620);
     bg.lineTo(110, 620);
     bg.lineTo(WALL_LEFT + 5, 430);
@@ -810,7 +788,7 @@ function drawLauncher() {
 
 function drawScore() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(WALL_LEFT, 42, RAMP_BOT_X - WALL_LEFT, 24);
+    ctx.fillRect(WALL_LEFT, 42, LANE_INNER_X - WALL_LEFT, 24);
 
     ctx.fillStyle = '#00ffdd';
     ctx.font = 'bold 16px monospace';
@@ -819,7 +797,7 @@ function drawScore() {
 
     // Vies
     for (let i = 0; i < lives; i++) {
-        const cx = RAMP_BOT_X - 15 - i * 20;
+        const cx = LANE_INNER_X - 15 - i * 20;
         const cy = 56;
         const g = ctx.createRadialGradient(cx - 1, cy - 1, 1, cx, cy, 6);
         g.addColorStop(0, '#fff');
