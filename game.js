@@ -305,7 +305,7 @@ function collideFlippers() {
 
             const angVel = flipper.angularVelocity || 0;
             const contactDist = Math.sqrt((closest.x - flipper.x) ** 2 + (closest.y - flipper.y) ** 2);
-            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 1.2, 8);
+            const hitStrength = Math.min(Math.abs(angVel) * contactDist * 0.8, 5);
 
             const dot = ball.vx * nx + ball.vy * ny;
             ball.vx = (ball.vx - 2 * dot * nx) * BOUNCE;
@@ -315,7 +315,7 @@ function collideFlippers() {
             if (Math.abs(angVel) > 0.01) {
                 ball.vy -= hitStrength;
                 const dir = flipper.side === 'left' ? 1 : -1;
-                ball.vx += dir * hitStrength * 0.4;
+                ball.vx += dir * hitStrength * 0.3;
             }
 
             // Clamper la vitesse immédiatement après le coup
@@ -344,7 +344,7 @@ function collideBumpers() {
             ball.y = bumper.y + ny * (minDist + 1);
 
             const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-            const reboundSpeed = Math.max(speed, 5) * (bumper.special ? 1.5 : 1.2);
+            const reboundSpeed = Math.max(speed, 4) * (bumper.special ? 1.2 : 1.1);
             ball.vx = nx * reboundSpeed;
             ball.vy = ny * reboundSpeed;
 
@@ -406,7 +406,7 @@ function updateLauncher() {
 }
 
 // --- Mise à jour de la bille ---
-const MAX_SPEED = 15;  // Vitesse max pour éviter de traverser les murs
+const MAX_SPEED = 10;  // Vitesse max pour éviter de traverser les murs
 
 function updateBall() {
     if (!ball.launched) return;
