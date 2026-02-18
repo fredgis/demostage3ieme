@@ -142,6 +142,9 @@ const walls = [
     { x1: LANE_OUTER_X, y1: CORNER_CY, x2: LANE_OUTER_X, y2: H },
     // Couloir lanceur : mur intérieur (seulement la partie basse, sous l'ouverture)
     { x1: LANE_INNER_X, y1: RIGHT_WALL_START, x2: LANE_INNER_X, y2: H },
+    // Guides anti-blocage entre les flippers (petit V qui oriente vers le drain)
+    { x1: 155, y1: 640, x2: 182, y2: 660 },
+    { x1: 210, y1: 640, x2: 183, y2: 660 },
 ];
 
 // --- Flippers ---
@@ -310,9 +313,9 @@ function collideFlippers() {
 
             // Impulsion du flipper : envoie la bille vers le haut
             if (Math.abs(angVel) > 0.01) {
-                ball.vy -= hitStrength * 1.8;
+                ball.vy -= hitStrength * 1.4;
                 const dir = flipper.side === 'left' ? 1 : -1;
-                ball.vx += dir * hitStrength * 0.6;
+                ball.vx += dir * hitStrength * 0.5;
             }
         }
     }
@@ -396,16 +399,46 @@ function updateLauncher() {
 }
 
 // --- Mise à jour de la bille ---
+const MAX_SPEED = 15;  // Vitesse max pour éviter de traverser les murs
+
 function updateBall() {
     if (!ball.launched) return;
     ball.vy += GRAVITY;
     ball.vx *= FRICTION;
     ball.vy *= FRICTION;
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-    collideWalls();
-    collideFlippers();
-    collideBumpers();
+
+    // Limiter la vitesse max
+    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    if (speed > MAX_SPEED) {
+        ball.vx = (ball.vx / speed) * MAX_SPEED;
+        ball.vy = (ball.vy / speed) * MAX_SPEED;
+    }
+
+    // Sub-stepping : découper le mouvement en petits pas
+    // pour que la bille ne traverse jamais un mur
+    const steps = Math.ceil(speed / ball.radius);
+    const subSteps = Math.max(1, steps);
+    for (let i = 0; i < subSteps; i++) {
+        ball.x += ball.vx / subSteps;
+        ball.y += ball.vy / subSteps;
+        collideWalls();
+        collideFlippers();
+        collideBumpers();
+    }
+
+    // Sécurité : clamper la bille dans les limites du terrain
+    if (ball.x < WALL_LEFT + ball.radius) {
+        ball.x = WALL_LEFT + ball.radius;
+        ball.vx = Math.abs(ball.vx) * BOUNCE;
+    }
+    if (ball.x > LANE_OUTER_X - ball.radius) {
+        ball.x = LANE_OUTER_X - ball.radius;
+        ball.vx = -Math.abs(ball.vx) * BOUNCE;
+    }
+    if (ball.y < WALL_TOP + ball.radius) {
+        ball.y = WALL_TOP + ball.radius;
+        ball.vy = Math.abs(ball.vy) * BOUNCE;
+    }
 }
 
 // ===================== DESSIN =====================
